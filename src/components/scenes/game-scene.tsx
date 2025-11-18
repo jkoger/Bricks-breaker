@@ -1,11 +1,11 @@
-import type { GameState } from "../game/core";
-import Vector from "../game/vector";
+import type { GameState } from "../../game/core.ts";
+import Vector from "../../game/vector.ts";
 
-import Level from "./level";
-import Lives from "./lives";
-import Block from "./block";
-import Paddle from "./paddle";
-import Ball from "./ball";
+import Level from "../level.tsx";
+import Lives from "../game-scene/lives.tsx";
+import Block from "../game-scene/block.tsx";
+import Paddle from "../game-scene/paddle.tsx";
+import Ball from "../game-scene/ball.tsx";
 
 interface GameSceneProps {
   game: GameState;

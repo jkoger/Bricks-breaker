@@ -1,4 +1,4 @@
-import { getRange } from "../utils";
+import { getRange } from "../../utils.ts";
 
 interface LivesProps {
   lives: number;

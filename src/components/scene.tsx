@@ -13,12 +13,12 @@ import {
 import { registerListener } from "../utils";
 import Vector from "../game/vector";
 
-import StartScreen from "./start-screen";
-import LevelCompleted from "./level-completed";
-import GameOver from "./game-over";
-import GameWon from "./game-won";
-import ResumeGame from "./resume-game";
-import GameScene from "./game-scene";
+import StartScreen from "./scenes/start-screen";
+import LevelCompleted from "./scenes/level-completed";
+import GameOver from "./scenes/game-over";
+import GameWon from "./scenes/game-won";
+import ResumeGame from "./scenes/resume-game";
+import GameScene from "./scenes/game-scene";
 
 const UPDATE_EVERY = 1000 / 60;
 

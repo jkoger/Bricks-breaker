@@ -1,5 +1,5 @@
-import { getRange } from "../utils";
-import { BLOCK_MAX_DENSITY } from "../game/levels";
+import { getRange } from "../../utils.ts";
+import { BLOCK_MAX_DENSITY } from "../../game/levels.ts";
 
 const colors = getRange(BLOCK_MAX_DENSITY).map(
   (i) => `rgba(231, 76, 60, ${1 / (BLOCK_MAX_DENSITY - i)})`,

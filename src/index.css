@@ -71,77 +71,148 @@ code {
 }
 
 .start-screen {
+  position: relative;
   border: 2px solid #3498db;
+  background: rgba(44, 62, 80, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.start-screen-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  text-align: center;
+  padding: 2rem;
+  max-width: 90%;
 }
 
 .start-title {
   font-weight: bold;
+  font-size: clamp(2rem, 8vw, 4rem);
+  color: var(--text-color);
+  margin: 0;
 }
 
 .start-text {
   font-weight: normal;
+  font-size: clamp(0.875rem, 2vw, 1.25rem);
+  color: var(--text-color);
+  margin: 0;
 }
 
-.start-button:hover rect {
-  fill: #2980b9;
+.start-button {
+  padding: 0.75rem 2rem;
+  font-size: clamp(1rem, 2.5vw, 1.5rem);
+  font-weight: 600;
+  color: var(--text-color);
+  background: #3498db;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background 0.2s;
 }
 
-.level-completed-screen {
-  border: 2px solid #3498db;
+.start-button:hover {
+  background: #2980b9;
 }
 
-.level-completed-title {
-  font-weight: bold;
+.start-button:active {
+  transform: scale(0.98);
 }
 
-.level-completed-text {
-  font-weight: normal;
-}
-
-.continue-button:hover rect {
-  fill: #229954;
-}
-
-.game-over-screen {
-  border: 2px solid #3498db;
-}
-
-.game-over-title {
-  font-weight: bold;
-}
-
-.game-over-text {
-  font-weight: normal;
-}
-
-.restart-button:hover rect {
-  fill: #c0392b;
-}
-
+.game-over-screen,
+.game-won-screen,
+.level-completed-screen,
 .resume-game-screen {
+  position: relative;
   border: 2px solid #3498db;
+  background: rgba(44, 62, 80, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
+.game-over-screen-content,
+.game-won-screen-content,
+.level-completed-screen-content,
+.resume-game-screen-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  text-align: center;
+  padding: 2rem;
+  max-width: 90%;
+}
+
+.game-over-title,
+.game-won-title,
+.level-completed-title,
 .resume-game-title {
   font-weight: bold;
+  font-size: clamp(2rem, 8vw, 4rem);
+  color: var(--text-color);
+  margin: 0;
 }
 
+.game-over-text,
+.game-won-text,
+.level-completed-text,
 .resume-game-text {
   font-weight: normal;
+  font-size: clamp(0.875rem, 2vw, 1.25rem);
+  color: var(--text-color);
+  margin: 0;
 }
 
-.game-won-screen {
-  border: 2px solid #3498db;
+.restart-button,
+.play-again-button,
+.continue-button,
+.start-button {
+  padding: 0.75rem 2rem;
+  font-size: clamp(1rem, 2.5vw, 1.5rem);
+  font-weight: 600;
+  color: var(--text-color);
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background 0.2s;
 }
 
-.game-won-title {
-  font-weight: bold;
+.restart-button {
+  background: #e74c3c;
 }
 
-.game-won-text {
-  font-weight: normal;
+.restart-button:hover {
+  background: #c0392b;
 }
 
-.play-again-button:hover rect {
-  fill: #229954;
+.play-again-button,
+.continue-button {
+  background: #27ae60;
+}
+
+.play-again-button:hover,
+.continue-button:hover {
+  background: #229954;
+}
+
+.start-button {
+  background: #3498db;
+}
+
+.start-button:hover {
+  background: #2980b9;
+}
+
+.restart-button:active,
+.play-again-button:active,
+.continue-button:active,
+.start-button:active {
+  transform: scale(0.98);
 }
