@@ -13,3 +13,16 @@ export const registerListener = (
   window.addEventListener(eventName, handler);
   return () => window.removeEventListener(eventName, handler);
 };
+
+export const toRadians = (degrees: number): number => (degrees * Math.PI) / 180;
+
+export const toDegrees = (radians: number): number => (radians * 180) / Math.PI;
+
+export const withoutElement = <T>(array: T[], element: T): T[] =>
+  array.filter((item) => item !== element);
+
+export const updateElement = <T>(
+  array: T[],
+  oldElement: T,
+  newElement: T,
+): T[] => array.map((item) => (item === oldElement ? newElement : item));
