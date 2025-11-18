@@ -20,6 +20,13 @@ export const MOVEMENT = {
 
 export type Movement = (typeof MOVEMENT)[keyof typeof MOVEMENT];
 
+export const MOVEMENT_KEYS = {
+  LEFT: [65, 37],
+  RIGHT: [68, 39],
+} as const;
+
+export const STOP_KEY = 32;
+
 const LEFT = new Vector(-1, 0);
 const RIGHT = new Vector(1, 0);
 const UP = new Vector(0, -1);
@@ -79,7 +86,10 @@ export const getInitialPaddleAndBall = (
   };
 };
 
-export const getGameStateFromLevel = (level: Level): GameState => {
+export const getGameStateFromLevel = (
+  level: Level,
+  lives: number,
+): GameState => {
   const width = level.blocks[0].length;
   const height = width;
 
@@ -103,7 +113,7 @@ export const getGameStateFromLevel = (level: Level): GameState => {
     size,
     blocks: flatten(rowsOfBlocks),
     ...getInitialPaddleAndBall(width, height, level.paddleWidth),
-    lives: level.lives,
+    lives,
     speed: level.speed,
   };
 };

@@ -69,3 +69,79 @@ code {
 .life {
   fill: var(--action-color);
 }
+
+.start-screen {
+  border: 2px solid #3498db;
+}
+
+.start-title {
+  font-weight: bold;
+}
+
+.start-text {
+  font-weight: normal;
+}
+
+.start-button:hover rect {
+  fill: #2980b9;
+}
+
+.level-completed-screen {
+  border: 2px solid #3498db;
+}
+
+.level-completed-title {
+  font-weight: bold;
+}
+
+.level-completed-text {
+  font-weight: normal;
+}
+
+.continue-button:hover rect {
+  fill: #229954;
+}
+
+.game-over-screen {
+  border: 2px solid #3498db;
+}
+
+.game-over-title {
+  font-weight: bold;
+}
+
+.game-over-text {
+  font-weight: normal;
+}
+
+.restart-button:hover rect {
+  fill: #c0392b;
+}
+
+.resume-game-screen {
+  border: 2px solid #3498db;
+}
+
+.resume-game-title {
+  font-weight: bold;
+}
+
+.resume-game-text {
+  font-weight: normal;
+}
+
+.game-won-screen {
+  border: 2px solid #3498db;
+}
+
+.game-won-title {
+  font-weight: bold;
+}
+
+.game-won-text {
+  font-weight: normal;
+}
+
+.play-again-button:hover rect {
+  fill: #229954;
+}

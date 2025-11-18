@@ -3,6 +3,8 @@ import { useEffect, useReducer } from "react";
 import { LEVELS } from "../game/levels";
 import {
   MOVEMENT,
+  MOVEMENT_KEYS,
+  STOP_KEY,
   getNewGameState,
   getGameStateFromLevel,
   type GameState,
@@ -11,18 +13,12 @@ import {
 import { registerListener } from "../utils";
 import Vector from "../game/vector";
 
-import Level from "./level";
-import Lives from "./lives";
-import Block from "./block";
-import Paddle from "./paddle";
-import Ball from "./ball";
-
-const MOVEMENT_KEYS = {
-  LEFT: [65, 37],
-  RIGHT: [68, 39],
-} as const;
-
-const STOP_KEY = 32;
+import StartScreen from "./start-screen";
+import LevelCompleted from "./level-completed";
+import GameOver from "./game-over";
+import GameWon from "./game-won";
+import ResumeGame from "./resume-game";
+import GameScene from "./game-scene";
 
 const UPDATE_EVERY = 1000 / 60;
 
@@ -37,6 +33,11 @@ interface Projectors {
 }
 
 interface SceneState {
+  started: boolean;
+  levelCompleted: boolean;
+  gameOver: boolean;
+  gameWon: boolean;
+  showResume: boolean;
   level: number;
   game: GameState;
   containerSize: ContainerSize;
@@ -50,6 +51,70 @@ interface SceneState {
 const getInitialLevel = (): number => {
   const inState = localStorage.getItem("level");
   return inState ? parseInt(inState, 10) : 0;
+};
+
+const hasActiveGame = (): boolean => {
+  const gameActive = localStorage.getItem("gameActive");
+  const level = getInitialLevel();
+  return gameActive === "true" && level >= 0;
+};
+
+const saveGameState = (level: number, game: GameState): void => {
+  const gameStateData = {
+    level,
+    game: {
+      ...game,
+      blocks: game.blocks.map((block) => ({
+        ...block,
+        position: { x: block.position.x, y: block.position.y },
+      })),
+      paddle: {
+        ...game.paddle,
+        position: { x: game.paddle.position.x, y: game.paddle.position.y },
+      },
+      ball: {
+        ...game.ball,
+        center: { x: game.ball.center.x, y: game.ball.center.y },
+        direction: { x: game.ball.direction.x, y: game.ball.direction.y },
+      },
+    },
+  };
+  localStorage.setItem("gameState", JSON.stringify(gameStateData));
+};
+
+const restoreGameState = (): { level: number; game: GameState } | null => {
+  const saved = localStorage.getItem("gameState");
+  if (!saved) return null;
+  try {
+    const data = JSON.parse(saved);
+    return {
+      level: data.level,
+      game: {
+        ...data.game,
+        blocks: data.game.blocks.map((block: any) => ({
+          ...block,
+          position: new Vector(block.position.x, block.position.y),
+        })),
+        paddle: {
+          ...data.game.paddle,
+          position: new Vector(
+            data.game.paddle.position.x,
+            data.game.paddle.position.y,
+          ),
+        },
+        ball: {
+          ...data.game.ball,
+          center: new Vector(data.game.ball.center.x, data.game.ball.center.y),
+          direction: new Vector(
+            data.game.ball.direction.x,
+            data.game.ball.direction.y,
+          ),
+        },
+      },
+    };
+  } catch {
+    return null;
+  }
 };
 
 const getProjectors = (
@@ -67,13 +132,34 @@ const getProjectors = (
 };
 
 const getInitialState = (containerSize: ContainerSize): SceneState => {
-  const level = getInitialLevel();
-  const game = getGameStateFromLevel(LEVELS[level]);
+  const showResume = hasActiveGame();
+  let level: number;
+  let game: GameState;
+
+  if (showResume) {
+    const restored = restoreGameState();
+    if (restored) {
+      level = restored.level;
+      game = restored.game;
+    } else {
+      level = getInitialLevel();
+      game = getGameStateFromLevel(LEVELS[level], 5);
+    }
+  } else {
+    level = getInitialLevel();
+    game = getGameStateFromLevel(LEVELS[level], 5);
+  }
+
   const { projectDistance, projectVector } = getProjectors(
     containerSize,
     game.size,
   );
   return {
+    started: false,
+    levelCompleted: false,
+    gameOver: false,
+    gameWon: false,
+    showResume,
     level,
     game,
     containerSize,
@@ -90,6 +176,11 @@ const ACTION = {
   KEY_DOWN: "KEY_DOWN",
   KEY_UP: "KEY_UP",
   TICK: "TICK",
+  START_GAME: "START_GAME",
+  CONTINUE_LEVEL: "CONTINUE_LEVEL",
+  RESTART_GAME: "RESTART_GAME",
+  CONTINUE_GAME: "CONTINUE_GAME",
+  START_NEW_GAME: "START_NEW_GAME",
 } as const;
 
 type ActionType = (typeof ACTION)[keyof typeof ACTION];
@@ -115,6 +206,13 @@ const HANDLER: Record<
     };
   },
   [ACTION.KEY_DOWN]: (state: SceneState, key: unknown) => {
+    if (
+      !state.started ||
+      state.levelCompleted ||
+      state.gameOver ||
+      state.gameWon
+    )
+      return state;
     const keyCode = key as number;
     if (MOVEMENT_KEYS.LEFT.includes(keyCode as 65 | 37)) {
       return { ...state, movement: MOVEMENT.LEFT };
@@ -124,6 +222,13 @@ const HANDLER: Record<
     return state;
   },
   [ACTION.KEY_UP]: (state: SceneState, key: unknown) => {
+    if (
+      !state.started ||
+      state.levelCompleted ||
+      state.gameOver ||
+      state.gameWon
+    )
+      return state;
     const keyCode = key as number;
     const newState = { ...state, movement: undefined };
     if (keyCode === STOP_KEY) {
@@ -140,7 +245,14 @@ const HANDLER: Record<
     return newState;
   },
   [ACTION.TICK]: (state: SceneState) => {
-    if (state.stopTime) return state;
+    if (
+      !state.started ||
+      state.stopTime ||
+      state.levelCompleted ||
+      state.gameOver ||
+      state.gameWon
+    )
+      return state;
 
     const time = Date.now();
     const newGame = getNewGameState(
@@ -150,20 +262,94 @@ const HANDLER: Record<
     );
     const newState = { ...state, time };
     if (newGame.lives < 1) {
-      return { ...newState, game: getGameStateFromLevel(LEVELS[state.level]) };
+      localStorage.removeItem("gameActive");
+      localStorage.removeItem("gameState");
+      localStorage.setItem("level", "0");
+      return { ...newState, gameOver: true };
     } else if (newGame.blocks.length < 1) {
-      const level =
-        state.level === LEVELS.length - 1 ? state.level : state.level + 1;
-      localStorage.setItem("level", String(level));
-      const game = getGameStateFromLevel(LEVELS[level]);
-      return {
-        ...newState,
-        level,
-        game,
-        ...getProjectors(state.containerSize, game.size),
-      };
+      const isLastLevel = state.level === LEVELS.length - 1;
+      if (isLastLevel) {
+        localStorage.removeItem("gameActive");
+        localStorage.removeItem("gameState");
+        localStorage.setItem("level", "0");
+        return { ...newState, gameWon: true };
+      }
+      saveGameState(state.level, newGame);
+      return { ...newState, levelCompleted: true };
     }
+    saveGameState(state.level, newGame);
     return { ...newState, game: newGame };
+  },
+  [ACTION.START_GAME]: (state: SceneState) => {
+    localStorage.setItem("level", "0");
+    localStorage.setItem("gameActive", "true");
+    const game = getGameStateFromLevel(LEVELS[0], 5);
+    saveGameState(0, game);
+    return {
+      ...state,
+      started: true,
+      showResume: false,
+      level: 0,
+      game,
+      ...getProjectors(state.containerSize, game.size),
+      time: Date.now(),
+    };
+  },
+  [ACTION.CONTINUE_LEVEL]: (state: SceneState) => {
+    const level =
+      state.level === LEVELS.length - 1 ? state.level : state.level + 1;
+    localStorage.setItem("level", String(level));
+    const game = getGameStateFromLevel(LEVELS[level], state.game.lives);
+    saveGameState(level, game);
+    return {
+      ...state,
+      levelCompleted: false,
+      level,
+      game,
+      ...getProjectors(state.containerSize, game.size),
+      time: Date.now(),
+    };
+  },
+  [ACTION.RESTART_GAME]: (state: SceneState) => {
+    localStorage.setItem("level", "0");
+    localStorage.setItem("gameActive", "true");
+    const game = getGameStateFromLevel(LEVELS[0], 5);
+    saveGameState(0, game);
+    return {
+      ...state,
+      gameOver: false,
+      gameWon: false,
+      showResume: false,
+      level: 0,
+      game,
+      ...getProjectors(state.containerSize, game.size),
+      time: Date.now(),
+    };
+  },
+  [ACTION.CONTINUE_GAME]: (state: SceneState) => {
+    localStorage.setItem("gameActive", "true");
+    return {
+      ...state,
+      started: true,
+      showResume: false,
+      time: Date.now(),
+    };
+  },
+  [ACTION.START_NEW_GAME]: (state: SceneState) => {
+    localStorage.setItem("level", "0");
+    localStorage.setItem("gameActive", "true");
+    const game = getGameStateFromLevel(LEVELS[0], 5);
+    saveGameState(0, game);
+    return {
+      ...state,
+      started: true,
+      showResume: false,
+      gameWon: false,
+      level: 0,
+      game,
+      ...getProjectors(state.containerSize, game.size),
+      time: Date.now(),
+    };
   },
 };
 
@@ -182,16 +368,15 @@ export default function Scene({ containerSize }: SceneProps) {
   const act = (type: ActionType, payload?: unknown) =>
     dispatch({ type, payload });
   const {
+    started,
+    levelCompleted,
+    gameOver,
+    gameWon,
+    showResume,
     projectDistance,
     projectVector,
     level,
-    game: {
-      blocks,
-      paddle,
-      ball,
-      size: { width, height },
-      lives,
-    },
+    game,
   } = state;
 
   useEffect(() => {
@@ -222,27 +407,69 @@ export default function Scene({ containerSize }: SceneProps) {
     };
   }, []);
 
-  const viewWidth = projectDistance(width);
-  const unit = projectDistance(ball.radius);
-  return (
-    <svg width={viewWidth} height={projectDistance(height)} className="scene">
-      <Lives lives={lives} unit={unit} />
-      <Level unit={unit} level={level + 1} containerWidth={viewWidth} />
-      {blocks.map(({ density, position, width, height }) => (
-        <Block
-          density={density}
-          key={`${position.x}-${position.y}`}
-          width={projectDistance(width)}
-          height={projectDistance(height)}
-          {...projectVector(position)}
-        />
-      ))}
-      <Paddle
-        width={projectDistance(paddle.width)}
-        height={projectDistance(paddle.height)}
-        {...projectVector(paddle.position)}
+  const viewWidth = projectDistance(game.size.width);
+  const viewHeight = projectDistance(game.size.height);
+
+  if (showResume) {
+    return (
+      <ResumeGame
+        width={viewWidth}
+        height={viewHeight}
+        onContinue={() => act(ACTION.CONTINUE_GAME)}
+        onStartNew={() => act(ACTION.START_NEW_GAME)}
       />
-      <Ball {...projectVector(ball.center)} radius={unit} />
-    </svg>
+    );
+  }
+
+  if (!started) {
+    return (
+      <StartScreen
+        width={viewWidth}
+        height={viewHeight}
+        onStart={() => act(ACTION.START_GAME)}
+      />
+    );
+  }
+
+  if (gameWon) {
+    return (
+      <GameWon
+        width={viewWidth}
+        height={viewHeight}
+        onNewGame={() => act(ACTION.START_NEW_GAME)}
+      />
+    );
+  }
+
+  if (gameOver) {
+    return (
+      <GameOver
+        width={viewWidth}
+        height={viewHeight}
+        onRestart={() => act(ACTION.RESTART_GAME)}
+      />
+    );
+  }
+
+  if (levelCompleted) {
+    return (
+      <LevelCompleted
+        width={viewWidth}
+        height={viewHeight}
+        level={level + 1}
+        onContinue={() => act(ACTION.CONTINUE_LEVEL)}
+      />
+    );
+  }
+
+  return (
+    <GameScene
+      game={game}
+      level={level}
+      projectDistance={projectDistance}
+      projectVector={projectVector}
+      viewWidth={viewWidth}
+      viewHeight={viewHeight}
+    />
   );
 }
