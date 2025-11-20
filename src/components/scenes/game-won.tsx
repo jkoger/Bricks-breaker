@@ -1,3 +1,5 @@
+import Button from "./button";
+
 interface GameWonProps {
   width: number;
   height: number;
@@ -6,15 +8,19 @@ interface GameWonProps {
 
 export default function GameWon({ width, height, onNewGame }: GameWonProps) {
   return (
-    <div className="game-won-screen" style={{ width, height }}>
-      <div className="game-won-screen-overlay"></div>
-      <div className="game-won-screen-content">
-        <h1 className="game-won-title">CONGRATULATIONS!</h1>
-        <p className="game-won-text">You completed all levels! Amazing work!</p>
-        <button className="play-again-button" onClick={onNewGame}>
-          Play again
-        </button>
-      </div>
+    <div
+      className="overlay-screen"
+      style={
+        {
+          width,
+          height,
+          "--container-width": `${width}px`,
+        } as React.CSSProperties
+      }
+    >
+      <h1 className="overlay-title">CONGRATULATIONS!</h1>
+      <p className="overlay-text">You completed all levels! Amazing work!</p>
+      <Button onClick={onNewGame}>Play again</Button>
     </div>
   );
 }

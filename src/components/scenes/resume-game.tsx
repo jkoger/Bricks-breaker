@@ -1,3 +1,5 @@
+import Button from "./button";
+
 interface ResumeGameProps {
   width: number;
   height: number;
@@ -12,21 +14,23 @@ export default function ResumeGame({
   onStartNew,
 }: ResumeGameProps) {
   return (
-    <div className="resume-game-screen" style={{ width, height }}>
-      <div className="resume-game-screen-overlay"></div>
-      <div className="resume-game-screen-content">
-        <h1 className="resume-game-title">UNFINISHED GAME</h1>
-        <p className="resume-game-text">
-          You have unfinished game. Would you like to continue?
-        </p>
-        <button className="continue-button" onClick={onContinue}>
-          Continue
-        </button>
-        <p className="resume-game-text">Or start a new game?</p>
-        <button className="start-button" onClick={onStartNew}>
-          Start new game
-        </button>
-      </div>
+    <div
+      className="overlay-screen"
+      style={
+        {
+          width,
+          height,
+          "--container-width": `${width}px`,
+        } as React.CSSProperties
+      }
+    >
+      <h1 className="overlay-title">UNFINISHED GAME</h1>
+      <p className="overlay-text">
+        You have unfinished game. Would you like to continue?
+      </p>
+      <Button onClick={onContinue}>CONTINUE</Button>
+      <p className="overlay-text">Or start a new game?</p>
+      <Button onClick={onStartNew}>START GAME</Button>
     </div>
   );
 }

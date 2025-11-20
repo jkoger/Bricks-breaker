@@ -1,3 +1,5 @@
+import Button from "./button";
+
 interface GameOverProps {
   width: number;
   height: number;
@@ -6,15 +8,19 @@ interface GameOverProps {
 
 export default function GameOver({ width, height, onRestart }: GameOverProps) {
   return (
-    <div className="game-over-screen" style={{ width, height }}>
-      <div className="game-over-screen-overlay"></div>
-      <div className="game-over-screen-content">
-        <h1 className="game-over-title">GAME OVER</h1>
-        <p className="game-over-text">You ran out of lives. Try again?</p>
-        <button className="restart-button" onClick={onRestart}>
-          Start again
-        </button>
-      </div>
+    <div
+      className="overlay-screen"
+      style={
+        {
+          width,
+          height,
+          "--container-width": `${width}px`,
+        } as React.CSSProperties
+      }
+    >
+      <h1 className="overlay-title">GAME OVER</h1>
+      <p className="overlay-text">You ran out of lives. Try again?</p>
+      <Button onClick={onRestart}>START AGAIN</Button>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import logoImage from "../../assets/images/logo.png";
+import Button from "./button";
 
 interface StartScreenProps {
   width: number;
@@ -12,16 +13,20 @@ export default function StartScreen({
   onStart,
 }: StartScreenProps) {
   return (
-    <div className="start-screen" style={{ width, height }}>
-      <div className="start-screen-overlay"></div>
-      <div className="start-screen-content">
-        <img src={logoImage} alt="Bricks Breaker" className="start-logo" />
-        <p className="start-text">Use arrow keys or A/D to move the paddle</p>
-        <p className="start-text">Press SPACE to pause</p>
-        <button className="start-button" onClick={onStart}>
-          Start Game
-        </button>
-      </div>
+    <div
+      className="overlay-screen"
+      style={
+        {
+          width,
+          height,
+          "--container-width": `${width}px`,
+        } as React.CSSProperties
+      }
+    >
+      <img src={logoImage} alt="Bricks Breaker" className="logo" />
+      <p className="overlay-text">Use ← → or A D to move the paddle</p>
+      <p className="overlay-text">Press SPACE to pause</p>
+      <Button onClick={onStart}>START GAME</Button>
     </div>
   );
 }
