@@ -1,4 +1,4 @@
-import { useEffect, useReducer } from "react";
+import { useEffect, useMemo, useReducer, useRef } from "react";
 
 import { LEVELS } from "../game/levels";
 import {
@@ -18,6 +18,7 @@ import LevelCompleted from "./scenes/level-completed";
 import GameOver from "./scenes/game-over";
 import GameWon from "./scenes/game-won";
 import ResumeGame from "./scenes/resume-game";
+import PauseScreen from "./scenes/pause-screen";
 import GameScene from "./scenes/game-scene";
 
 const UPDATE_EVERY = 1000 / 60;
@@ -38,13 +39,11 @@ interface SceneState {
   gameOver: boolean;
   gameWon: boolean;
   showResume: boolean;
+  isPaused: boolean;
   level: number;
-  game: GameState;
   containerSize: ContainerSize;
   projectDistance: (distance: number) => number;
   projectVector: (vector: Vector) => Vector;
-  time: number;
-  stopTime: number | undefined;
   movement: Movement | undefined;
 }
 
@@ -94,6 +93,11 @@ const restoreGameState = (): { level: number; game: GameState } | null => {
         blocks: data.game.blocks.map((block: any) => ({
           ...block,
           position: new Vector(block.position.x, block.position.y),
+          // Ensure textureIndex exists (for old saved games)
+          textureIndex:
+            block.textureIndex !== undefined
+              ? block.textureIndex
+              : Math.floor(Math.random() * 2),
         })),
         paddle: {
           ...data.game.paddle,
@@ -131,7 +135,12 @@ const getProjectors = (
   };
 };
 
-const getInitialState = (containerSize: ContainerSize): SceneState => {
+interface InitialData {
+  state: SceneState;
+  game: GameState;
+}
+
+const getInitialData = (containerSize: ContainerSize): InitialData => {
   const showResume = hasActiveGame();
   let level: number;
   let game: GameState;
@@ -155,19 +164,20 @@ const getInitialState = (containerSize: ContainerSize): SceneState => {
     game.size,
   );
   return {
-    started: false,
-    levelCompleted: false,
-    gameOver: false,
-    gameWon: false,
-    showResume,
-    level,
+    state: {
+      started: false,
+      levelCompleted: false,
+      gameOver: false,
+      gameWon: false,
+      showResume,
+      isPaused: false,
+      level,
+      containerSize,
+      projectDistance,
+      projectVector,
+      movement: undefined,
+    },
     game,
-    containerSize,
-    projectDistance,
-    projectVector,
-    time: Date.now(),
-    stopTime: undefined,
-    movement: undefined,
   };
 };
 
@@ -190,181 +200,178 @@ interface Action {
   payload?: unknown;
 }
 
-const HANDLER: Record<
-  ActionType,
-  (state: SceneState, payload?: unknown) => SceneState
-> = {
-  [ACTION.CONTAINER_SIZE_CHANGE]: (
-    state: SceneState,
-    containerSize: unknown,
-  ) => {
-    const size = containerSize as ContainerSize;
-    return {
-      ...state,
-      containerSize: size,
-      ...getProjectors(size, state.game.size),
-    };
-  },
-  [ACTION.KEY_DOWN]: (state: SceneState, key: unknown) => {
-    if (
-      !state.started ||
-      state.levelCompleted ||
-      state.gameOver ||
-      state.gameWon
-    )
-      return state;
-    const keyCode = key as number;
-    if (MOVEMENT_KEYS.LEFT.includes(keyCode as 65 | 37)) {
-      return { ...state, movement: MOVEMENT.LEFT };
-    } else if (MOVEMENT_KEYS.RIGHT.includes(keyCode as 68 | 39)) {
-      return { ...state, movement: MOVEMENT.RIGHT };
-    }
-    return state;
-  },
-  [ACTION.KEY_UP]: (state: SceneState, key: unknown) => {
-    if (
-      !state.started ||
-      state.levelCompleted ||
-      state.gameOver ||
-      state.gameWon
-    )
-      return state;
-    const keyCode = key as number;
-    const newState = { ...state, movement: undefined };
-    if (keyCode === STOP_KEY) {
-      if (state.stopTime) {
+const createReducer =
+  (gameRef: React.MutableRefObject<GameState>) =>
+  (state: SceneState, action: Action): SceneState => {
+    switch (action.type) {
+      case ACTION.CONTAINER_SIZE_CHANGE: {
+        const size = action.payload as ContainerSize;
+        const gameSize = gameRef.current.size;
         return {
-          ...newState,
-          stopTime: undefined,
-          time: state.time + Date.now() - state.stopTime,
+          ...state,
+          containerSize: size,
+          ...getProjectors(size, gameSize),
         };
-      } else {
-        return { ...newState, stopTime: Date.now() };
       }
-    }
-    return newState;
-  },
-  [ACTION.TICK]: (state: SceneState) => {
-    if (
-      !state.started ||
-      state.stopTime ||
-      state.levelCompleted ||
-      state.gameOver ||
-      state.gameWon
-    )
-      return state;
-
-    const time = Date.now();
-    const newGame = getNewGameState(
-      state.game,
-      state.movement,
-      time - state.time,
-    );
-    const newState = { ...state, time };
-    if (newGame.lives < 1) {
-      localStorage.removeItem("gameActive");
-      localStorage.removeItem("gameState");
-      localStorage.setItem("level", "0");
-      return { ...newState, gameOver: true };
-    } else if (newGame.blocks.length < 1) {
-      const isLastLevel = state.level === LEVELS.length - 1;
-      if (isLastLevel) {
-        localStorage.removeItem("gameActive");
-        localStorage.removeItem("gameState");
+      case ACTION.KEY_DOWN: {
+        if (
+          !state.started ||
+          state.levelCompleted ||
+          state.gameOver ||
+          state.gameWon
+        )
+          return state;
+        const keyCode = action.payload as number;
+        if (MOVEMENT_KEYS.LEFT.includes(keyCode as 65 | 37)) {
+          return { ...state, movement: MOVEMENT.LEFT };
+        }
+        if (MOVEMENT_KEYS.RIGHT.includes(keyCode as 68 | 39)) {
+          return { ...state, movement: MOVEMENT.RIGHT };
+        }
+        return state;
+      }
+      case ACTION.KEY_UP: {
+        if (
+          !state.started ||
+          state.levelCompleted ||
+          state.gameOver ||
+          state.gameWon
+        )
+          return state;
+        const keyCode = action.payload as number;
+        if (keyCode === STOP_KEY) {
+          return { ...state, movement: undefined, isPaused: !state.isPaused };
+        }
+        return { ...state, movement: undefined };
+      }
+      case ACTION.TICK: {
+        if (
+          !state.started ||
+          state.isPaused ||
+          state.levelCompleted ||
+          state.gameOver ||
+          state.gameWon
+        )
+          return state;
+        const delta =
+          typeof action.payload === "number" && !Number.isNaN(action.payload)
+            ? (action.payload as number)
+            : UPDATE_EVERY;
+        const newGame = getNewGameState(gameRef.current, state.movement, delta);
+        gameRef.current = newGame;
+        if (newGame.lives < 1) {
+          localStorage.removeItem("gameActive");
+          localStorage.removeItem("gameState");
+          localStorage.setItem("level", "0");
+          return { ...state, gameOver: true };
+        }
+        if (newGame.blocks.length < 1) {
+          const isLastLevel = state.level === LEVELS.length - 1;
+          if (isLastLevel) {
+            localStorage.removeItem("gameActive");
+            localStorage.removeItem("gameState");
+            localStorage.setItem("level", "0");
+            return { ...state, gameWon: true };
+          }
+          saveGameState(state.level, newGame);
+          return { ...state, levelCompleted: true };
+        }
+        return state;
+      }
+      case ACTION.START_GAME: {
         localStorage.setItem("level", "0");
-        return { ...newState, gameWon: true };
+        localStorage.setItem("gameActive", "true");
+        const game = getGameStateFromLevel(LEVELS[0], 5);
+        gameRef.current = game;
+        saveGameState(0, game);
+        return {
+          ...state,
+          started: true,
+          showResume: false,
+          level: 0,
+          ...getProjectors(state.containerSize, game.size),
+        };
       }
-      saveGameState(state.level, newGame);
-      return { ...newState, levelCompleted: true };
+      case ACTION.CONTINUE_LEVEL: {
+        const level =
+          state.level === LEVELS.length - 1 ? state.level : state.level + 1;
+        localStorage.setItem("level", String(level));
+        const game = getGameStateFromLevel(
+          LEVELS[level],
+          gameRef.current.lives,
+        );
+        gameRef.current = game;
+        saveGameState(level, game);
+        return {
+          ...state,
+          levelCompleted: false,
+          level,
+          ...getProjectors(state.containerSize, game.size),
+        };
+      }
+      case ACTION.RESTART_GAME: {
+        localStorage.setItem("level", "0");
+        localStorage.setItem("gameActive", "true");
+        const game = getGameStateFromLevel(LEVELS[0], 5);
+        gameRef.current = game;
+        saveGameState(0, game);
+        return {
+          ...state,
+          gameOver: false,
+          gameWon: false,
+          showResume: false,
+          level: 0,
+          ...getProjectors(state.containerSize, game.size),
+        };
+      }
+      case ACTION.CONTINUE_GAME: {
+        localStorage.setItem("gameActive", "true");
+        return {
+          ...state,
+          started: true,
+          showResume: false,
+        };
+      }
+      case ACTION.START_NEW_GAME: {
+        localStorage.setItem("level", "0");
+        localStorage.setItem("gameActive", "true");
+        const game = getGameStateFromLevel(LEVELS[0], 5);
+        gameRef.current = game;
+        saveGameState(0, game);
+        return {
+          ...state,
+          started: true,
+          showResume: false,
+          gameWon: false,
+          level: 0,
+          ...getProjectors(state.containerSize, game.size),
+        };
+      }
+      default:
+        return state;
     }
-    saveGameState(state.level, newGame);
-    return { ...newState, game: newGame };
-  },
-  [ACTION.START_GAME]: (state: SceneState) => {
-    localStorage.setItem("level", "0");
-    localStorage.setItem("gameActive", "true");
-    const game = getGameStateFromLevel(LEVELS[0], 5);
-    saveGameState(0, game);
-    return {
-      ...state,
-      started: true,
-      showResume: false,
-      level: 0,
-      game,
-      ...getProjectors(state.containerSize, game.size),
-      time: Date.now(),
-    };
-  },
-  [ACTION.CONTINUE_LEVEL]: (state: SceneState) => {
-    const level =
-      state.level === LEVELS.length - 1 ? state.level : state.level + 1;
-    localStorage.setItem("level", String(level));
-    const game = getGameStateFromLevel(LEVELS[level], state.game.lives);
-    saveGameState(level, game);
-    return {
-      ...state,
-      levelCompleted: false,
-      level,
-      game,
-      ...getProjectors(state.containerSize, game.size),
-      time: Date.now(),
-    };
-  },
-  [ACTION.RESTART_GAME]: (state: SceneState) => {
-    localStorage.setItem("level", "0");
-    localStorage.setItem("gameActive", "true");
-    const game = getGameStateFromLevel(LEVELS[0], 5);
-    saveGameState(0, game);
-    return {
-      ...state,
-      gameOver: false,
-      gameWon: false,
-      showResume: false,
-      level: 0,
-      game,
-      ...getProjectors(state.containerSize, game.size),
-      time: Date.now(),
-    };
-  },
-  [ACTION.CONTINUE_GAME]: (state: SceneState) => {
-    localStorage.setItem("gameActive", "true");
-    return {
-      ...state,
-      started: true,
-      showResume: false,
-      time: Date.now(),
-    };
-  },
-  [ACTION.START_NEW_GAME]: (state: SceneState) => {
-    localStorage.setItem("level", "0");
-    localStorage.setItem("gameActive", "true");
-    const game = getGameStateFromLevel(LEVELS[0], 5);
-    saveGameState(0, game);
-    return {
-      ...state,
-      started: true,
-      showResume: false,
-      gameWon: false,
-      level: 0,
-      game,
-      ...getProjectors(state.containerSize, game.size),
-      time: Date.now(),
-    };
-  },
-};
-
-const reducer = (state: SceneState, action: Action): SceneState => {
-  const handler = HANDLER[action.type];
-  if (!handler) return state;
-  return handler(state, action.payload);
-};
+  };
 
 interface SceneProps {
   containerSize: ContainerSize;
 }
 
 export default function Scene({ containerSize }: SceneProps) {
-  const [state, dispatch] = useReducer(reducer, containerSize, getInitialState);
+  const gameRef = useRef<GameState | null>(null);
+  const reducer = useMemo(
+    () => createReducer(gameRef as React.MutableRefObject<GameState>),
+    [],
+  );
+  const [state, dispatch] = useReducer(
+    reducer,
+    containerSize,
+    (size: ContainerSize) => {
+      const { state: initialState, game } = getInitialData(size);
+      gameRef.current = game;
+      return initialState;
+    },
+  );
+  const resolvedGameRef = gameRef as React.MutableRefObject<GameState>;
   const act = (type: ActionType, payload?: unknown) =>
     dispatch({ type, payload });
   const {
@@ -376,8 +383,13 @@ export default function Scene({ containerSize }: SceneProps) {
     projectDistance,
     projectVector,
     level,
-    game,
+    isPaused,
   } = state;
+
+  const pausedRef = useRef(isPaused);
+  useEffect(() => {
+    pausedRef.current = isPaused;
+  }, [isPaused]);
 
   useEffect(() => {
     act(ACTION.CONTAINER_SIZE_CHANGE, containerSize);
@@ -392,23 +404,60 @@ export default function Scene({ containerSize }: SceneProps) {
       const keyCode = event.which || event.keyCode;
       act(ACTION.KEY_UP, keyCode);
     };
-    const tick = () => act(ACTION.TICK);
+    let animationFrameId: number | null = null;
+    let lastTimestamp: number | null = null;
+    let accumulator = 0;
+    let hiddenPause = false;
 
-    const timerId = setInterval(tick, UPDATE_EVERY);
+    const tick = (timestamp: number) => {
+      if (lastTimestamp === null) {
+        lastTimestamp = timestamp;
+      }
+      const delta = Math.min(timestamp - lastTimestamp, 250);
+      lastTimestamp = timestamp;
+
+      if (pausedRef.current || hiddenPause) {
+        animationFrameId = requestAnimationFrame(tick);
+        return;
+      }
+
+      accumulator += delta;
+      while (accumulator >= UPDATE_EVERY) {
+        act(ACTION.TICK, UPDATE_EVERY);
+        accumulator -= UPDATE_EVERY;
+      }
+
+      animationFrameId = requestAnimationFrame(tick);
+    };
+
+    const handleVisibilityChange = () => {
+      hiddenPause = document.hidden;
+      if (!hiddenPause) {
+        lastTimestamp = null;
+      }
+    };
+
+    animationFrameId = requestAnimationFrame(tick);
     const unregisterKeydown = registerListener(
       "keydown",
       onKeyDown as EventListener,
     );
     const unregisterKeyup = registerListener("keyup", onKeyUp as EventListener);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     return () => {
-      clearInterval(timerId);
+      if (animationFrameId !== null) {
+        cancelAnimationFrame(animationFrameId);
+      }
       unregisterKeydown();
       unregisterKeyup();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, []);
 
-  const viewWidth = projectDistance(game.size.width);
-  const viewHeight = projectDistance(game.size.height);
+  const currentGame = resolvedGameRef.current;
+  const viewWidth = projectDistance(currentGame.size.width);
+  const viewHeight = projectDistance(currentGame.size.height);
 
   if (showResume) {
     return (
@@ -462,14 +511,34 @@ export default function Scene({ containerSize }: SceneProps) {
     );
   }
 
+  // Account for canvas border (2px on each side = 4px total)
+  const borderWidth = 2;
+  const containerWidth = viewWidth + borderWidth * 2;
+  const containerHeight = viewHeight + borderWidth * 2;
+
   return (
-    <GameScene
-      game={game}
-      level={level}
-      projectDistance={projectDistance}
-      projectVector={projectVector}
-      viewWidth={viewWidth}
-      viewHeight={viewHeight}
-    />
+    <div
+      style={{
+        position: "relative",
+        width: containerWidth,
+        height: containerHeight,
+      }}
+    >
+      <GameScene
+        gameRef={resolvedGameRef}
+        level={level}
+        projectDistance={projectDistance}
+        projectVector={projectVector}
+        viewWidth={viewWidth}
+        viewHeight={viewHeight}
+      />
+      {isPaused && (
+        <PauseScreen
+          width={containerWidth}
+          height={containerHeight}
+          onResume={() => act(ACTION.KEY_UP, STOP_KEY)}
+        />
+      )}
+    </div>
   );
 }

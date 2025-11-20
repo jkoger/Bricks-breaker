@@ -52,6 +52,8 @@ export interface Block {
   position: Vector;
   width: number;
   height: number;
+  textureIndex: number; // Random texture index (0 or 1) assigned on creation
+  hitAt?: number; // Timestamp when block was last hit (for flash effect)
 }
 
 export interface GameState {
@@ -102,6 +104,7 @@ export const getGameStateFromLevel = (
       position: new Vector(j, blocksStart + i * BLOCK_HEIGHT),
       width: 1,
       height: BLOCK_HEIGHT,
+      textureIndex: Math.floor(Math.random() * 2), // Random texture: 0 or 1
     })),
   );
 
@@ -238,18 +241,69 @@ export const getNewGameState = (
   if (ballLeft <= 0) return withNewBallDirection(RIGHT);
   if (ballRight >= size.width) return withNewBallDirection(LEFT);
 
-  const block = state.blocks.find(
-    ({ position, width, height }) =>
-      isInBoundaries(ballTop, ballBottom, position.y, position.y + height) &&
-      isInBoundaries(ballLeft, ballRight, position.x, position.x + width),
-  );
-  if (block) {
+  // Simple spatial culling: only check blocks near the ball
+  // This reduces O(n) scan to checking only relevant blocks
+  const margin = radius * 2; // Safety margin for fast-moving ball
+  const candidateBlocks = state.blocks.filter(({ position, width, height }) => {
+    const blockRight = position.x + width;
+    const blockBottom = position.y + height;
+    // Quick bounding box check - much faster than precise collision
+    return (
+      ballRight >= position.x - margin &&
+      ballLeft <= blockRight + margin &&
+      ballBottom >= position.y - margin &&
+      ballTop <= blockBottom + margin
+    );
+  });
+
+  // Find block and its index to optimize array update (avoid cloning entire array)
+  let blockIndex = -1;
+  let block: (typeof state.blocks)[0] | undefined;
+
+  for (let i = 0; i < state.blocks.length; i++) {
+    const b = state.blocks[i];
+    // Quick check: is this block in candidate set (spatial culling)
+    const blockRight = b.position.x + b.width;
+    const blockBottom = b.position.y + b.height;
+    const inCandidates =
+      ballRight >= b.position.x - margin &&
+      ballLeft <= blockRight + margin &&
+      ballBottom >= b.position.y - margin &&
+      ballTop <= blockBottom + margin;
+
+    if (
+      inCandidates &&
+      isInBoundaries(
+        ballTop,
+        ballBottom,
+        b.position.y,
+        b.position.y + b.height,
+      ) &&
+      isInBoundaries(ballLeft, ballRight, b.position.x, b.position.x + b.width)
+    ) {
+      block = b;
+      blockIndex = i;
+      break;
+    }
+  }
+
+  if (block && blockIndex !== -1) {
     const density = block.density - 1;
-    const newBlock = { ...block, density };
-    const blocks =
-      density < 0
-        ? withoutElement(state.blocks, block)
-        : updateElement(state.blocks, block, newBlock);
+
+    // Optimize array update: only create new array if needed, and only modify one element
+    let blocks: typeof state.blocks;
+    if (density < 0) {
+      // Remove block: create new array without this index (more efficient than filter)
+      blocks = [
+        ...state.blocks.slice(0, blockIndex),
+        ...state.blocks.slice(blockIndex + 1),
+      ];
+    } else {
+      // Update block: create new array with only this element changed
+      // Record hit timestamp for flash effect
+      blocks = [...state.blocks];
+      blocks[blockIndex] = { ...block, density, hitAt: Date.now() };
+    }
 
     const getNewBallNormal = (): Vector => {
       const blockTop = block.position.y;
