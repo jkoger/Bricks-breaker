@@ -26,9 +26,18 @@ export default function GameScene({
 }: GameSceneProps) {
   const { blocks, paddle, ball, lives } = game;
   const unit = projectDistance(ball.radius);
+  // Add padding for stroke (2.5px / 2 = 1.25px on each side)
+  const strokePadding = 2;
+  const paddedWidth = viewWidth + strokePadding * 2;
+  const paddedHeight = viewHeight + strokePadding * 2;
 
   return (
-    <svg width={viewWidth} height={viewHeight} className="scene">
+    <svg
+      width={viewWidth}
+      height={viewHeight}
+      viewBox={`-${strokePadding} -${strokePadding} ${paddedWidth} ${paddedHeight}`}
+      className="scene"
+    >
       <Lives lives={lives} unit={unit} />
       <Level unit={unit} level={level + 1} containerWidth={viewWidth} />
       {blocks.map(({ density, position, width, height }) => (
