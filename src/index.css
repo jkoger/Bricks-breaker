@@ -32,7 +32,9 @@ code {
 .page {
   width: 100%;
   height: 100%;
-  background: #f2e59a;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   padding: 60px;
 }
 
@@ -70,24 +72,51 @@ code {
   fill: var(--action-color);
 }
 
+@keyframes screenFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 .start-screen {
   position: relative;
-  border: 2px solid #3498db;
-  background: rgba(44, 62, 80, 0.9);
   display: flex;
   align-items: center;
   justify-content: center;
+  animation: screenFadeIn 0.3s ease-out;
+  overflow: auto;
+  box-sizing: border-box;
+}
+
+.start-screen-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
 }
 
 .start-screen-content {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1.5rem;
+  gap: 1rem;
   text-align: center;
-  padding: 2rem;
+  padding: 1.5rem;
+  padding-bottom: 5rem;
   max-width: 90%;
+  width: 100%;
+  box-sizing: border-box;
+  transform: translateY(-3vh);
 }
 
 .start-title {
@@ -95,6 +124,14 @@ code {
   font-size: clamp(2rem, 8vw, 4rem);
   color: var(--text-color);
   margin: 0;
+}
+
+.start-logo {
+  max-width: min(80vw, 500px);
+  width: 100%;
+  height: auto;
+  display: block;
+  margin-bottom: 0.5rem;
 }
 
 .start-text {
@@ -129,17 +166,32 @@ code {
 .level-completed-screen,
 .resume-game-screen {
   position: relative;
-  border: 2px solid #3498db;
-  background: rgba(44, 62, 80, 0.9);
   display: flex;
   align-items: center;
   justify-content: center;
+  animation: screenFadeIn 0.3s ease-out;
+  overflow: auto;
+  box-sizing: border-box;
+}
+
+.game-over-screen-overlay,
+.game-won-screen-overlay,
+.level-completed-screen-overlay,
+.resume-game-screen-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
 }
 
 .game-over-screen-content,
 .game-won-screen-content,
 .level-completed-screen-content,
 .resume-game-screen-content {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;

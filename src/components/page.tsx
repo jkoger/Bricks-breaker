@@ -2,6 +2,7 @@ import { useRef, useEffect, useState } from "react";
 
 import Scene from "./scene";
 import { registerListener } from "../utils";
+import bgImage from "../assets/images/bg.png";
 
 interface Size {
   width: number;
@@ -26,7 +27,7 @@ export default function Page() {
   }, []);
 
   return (
-    <div className="page">
+    <div className="page" style={{ backgroundImage: `url(${bgImage})` }}>
       <div className="scene-container" ref={sceneContainer}>
         {size && <Scene containerSize={size} />}
       </div>

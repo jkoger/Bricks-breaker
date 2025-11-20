@@ -13,6 +13,7 @@ export default function ResumeGame({
 }: ResumeGameProps) {
   return (
     <div className="resume-game-screen" style={{ width, height }}>
+      <div className="resume-game-screen-overlay"></div>
       <div className="resume-game-screen-content">
         <h1 className="resume-game-title">UNFINISHED GAME</h1>
         <p className="resume-game-text">

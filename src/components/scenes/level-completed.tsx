@@ -13,6 +13,7 @@ export default function LevelCompleted({
 }: LevelCompletedProps) {
   return (
     <div className="level-completed-screen" style={{ width, height }}>
+      <div className="level-completed-screen-overlay"></div>
       <div className="level-completed-screen-content">
         <h1 className="level-completed-title">LEVEL {level} COMPLETED!</h1>
         <p className="level-completed-text">
