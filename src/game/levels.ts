@@ -17,22 +17,22 @@ export interface Level {
 export const LEVELS: Level[] = [
   {
     paddleWidth: 3.5,
-    speed: 1,
+    speed: 0.7,
     blocks: getBlocks(3, 6),
   },
   {
     paddleWidth: 3,
-    speed: 1.4,
+    speed: 0.8,
     blocks: getBlocks(4, 7),
   },
   {
     paddleWidth: 2.5,
-    speed: 1.8,
+    speed: 0.9,
     blocks: getBlocks(5, 8),
   },
   {
     paddleWidth: 2,
-    speed: 2.2,
+    speed: 1,
     blocks: getBlocks(6, 9),
   },
 ];

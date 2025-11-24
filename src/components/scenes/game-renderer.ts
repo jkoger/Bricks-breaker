@@ -22,10 +22,11 @@ interface RenderContext {
   projectDistance: (distance: number) => number;
   projectVector: (vector: Vector) => Vector;
   images: {
-    paddle: HTMLImageElement | null;
-    ball: HTMLImageElement | null;
-    bricks: HTMLImageElement[];
+    paddle: ImageBitmap | null;
+    ball: ImageBitmap | null;
+    bricks: ImageBitmap[];
   };
+  brickPatterns: CanvasPattern[] | null;
 }
 
 function setupSmoothRendering(ctx: CanvasRenderingContext2D) {
@@ -226,7 +227,8 @@ function drawBlocks(
   game: GameState,
   projectVector: (vector: Vector) => Vector,
   projectDistance: (distance: number) => number,
-  brickImages: HTMLImageElement[],
+  brickImages: ImageBitmap[],
+  brickPatterns: CanvasPattern[] | null,
 ) {
   const hasTextures = brickImages.length > 0;
   const tintBase = BLOCK_MAX_DENSITY - 1;
@@ -236,8 +238,7 @@ function drawBlocks(
     ctx.strokeStyle = BLOCK_STROKE_COLOR;
     ctx.lineJoin = "round";
     ctx.lineCap = "round";
-
-    game.blocks.forEach((block) => {
+    game.blockGrid.forEachActiveBlock((block) => {
       const { x, y } = projectVector(block.position);
       const width = projectDistance(block.width);
       const height = projectDistance(block.height);
@@ -269,8 +270,8 @@ function drawBlocks(
         );
 
         if (hasTextures && block.textureIndex !== undefined) {
-          const texture = brickImages[block.textureIndex % brickImages.length];
-          const pattern = ctx.createPattern(texture, "repeat");
+          const pattern =
+            brickPatterns?.[block.textureIndex % brickPatterns.length] || null;
           if (pattern) {
             ctx.fillStyle = pattern;
             drawBlockShape();
@@ -363,7 +364,7 @@ function drawPaddle(
   game: GameState,
   projectVector: (vector: Vector) => Vector,
   projectDistance: (distance: number) => number,
-  paddleImg: HTMLImageElement | null,
+  paddleImg: ImageBitmap | null,
   unit: number,
 ) {
   const paddlePos = projectVector(game.paddle.position);
@@ -393,7 +394,7 @@ function drawBall(
   game: GameState,
   projectVector: (vector: Vector) => Vector,
   unit: number,
-  ballImg: HTMLImageElement | null,
+  ballImg: ImageBitmap | null,
 ) {
   const ballCenter = projectVector(game.ball.center);
   const diameter = unit * 2;
@@ -431,6 +432,7 @@ export function renderGameScene(context: RenderContext): void {
     projectDistance,
     projectVector,
     images,
+    brickPatterns,
   } = context;
 
   ctx.clearRect(0, 0, viewWidth, viewHeight);
@@ -438,7 +440,14 @@ export function renderGameScene(context: RenderContext): void {
 
   drawLives(ctx, game, unit);
   drawLevelText(ctx, level, unit, viewWidth);
-  drawBlocks(ctx, game, projectVector, projectDistance, images.bricks);
+  drawBlocks(
+    ctx,
+    game,
+    projectVector,
+    projectDistance,
+    images.bricks,
+    brickPatterns,
+  );
   drawPaddle(ctx, game, projectVector, projectDistance, images.paddle, unit);
   drawBall(ctx, game, projectVector, unit, images.ball);
 }

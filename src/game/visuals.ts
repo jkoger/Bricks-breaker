@@ -12,7 +12,6 @@ export const blockColors = getRange(BLOCK_MAX_DENSITY).map(
 export const BLOCK_STROKE_COLOR = "#693612";
 export const BLOCK_STROKE_WIDTH = 2.5;
 
-// Glow and stroke colors
 export const ORANGE_GLOW = "rgba(255, 180, 100, 0.4)";
 export const ORANGE_GLOW_SOFT = "rgba(255, 180, 100, 0.3)";
 export const ORANGE_GLOW_STRONG = "rgba(255, 140, 0, 0.4)";

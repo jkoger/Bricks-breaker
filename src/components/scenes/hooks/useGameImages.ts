@@ -1,69 +1,60 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import paddleImageSrc from "../../../assets/images/paddle.png";
 import ballImageSrc from "../../../assets/images/ball.png";
 import brick1ImageSrc from "../../../assets/images/brick.png";
 import brick2ImageSrc from "../../../assets/images/brick1.png";
+import { preloadImages, preloadImage } from "../utils/preloadResources";
+
+type LoadingState = "loading" | "loaded" | "error";
 
 interface GameImages {
-  paddle: React.RefObject<HTMLImageElement | null>;
-  ball: React.RefObject<HTMLImageElement | null>;
-  bricks: React.RefObject<HTMLImageElement[]>;
+  paddle: React.RefObject<ImageBitmap | null>;
+  ball: React.RefObject<ImageBitmap | null>;
+  bricks: React.RefObject<ImageBitmap[]>;
+  loadingState: LoadingState;
 }
 
 export function useGameImages(): GameImages {
-  const paddleImageRef = useRef<HTMLImageElement | null>(null);
-  const ballImageRef = useRef<HTMLImageElement | null>(null);
-  const brickImagesRef = useRef<HTMLImageElement[]>([]);
+  const paddleImageRef = useRef<ImageBitmap | null>(null);
+  const ballImageRef = useRef<ImageBitmap | null>(null);
+  const brickImagesRef = useRef<ImageBitmap[]>([]);
+  const [loadingState, setLoadingState] = useState<LoadingState>("loading");
 
   useEffect(() => {
-    const img = new Image();
-    img.src = paddleImageSrc;
-    const handleLoad = () => {
-      paddleImageRef.current = img;
-    };
-    img.addEventListener("load", handleLoad);
-    return () => {
-      img.removeEventListener("load", handleLoad);
-      paddleImageRef.current = null;
-    };
-  }, []);
-
-  useEffect(() => {
-    const img = new Image();
-    img.src = ballImageSrc;
-    const handleLoad = () => {
-      ballImageRef.current = img;
-    };
-    img.addEventListener("load", handleLoad);
-    return () => {
-      img.removeEventListener("load", handleLoad);
-      ballImageRef.current = null;
-    };
-  }, []);
-
-  useEffect(() => {
-    const sources = [brick1ImageSrc, brick2ImageSrc];
-    const images: HTMLImageElement[] = [];
     let mounted = true;
-    let remaining = sources.length;
 
-    sources.forEach((src, index) => {
-      const img = new Image();
-      img.src = src;
-      const handleLoad = () => {
+    const loadAllImages = async () => {
+      try {
+        setLoadingState("loading");
+
+        const [paddleImg, ballImg, brickImgs] = await Promise.all([
+          preloadImage(paddleImageSrc),
+          preloadImage(ballImageSrc),
+          preloadImages([brick1ImageSrc, brick2ImageSrc]),
+        ]);
+
         if (!mounted) return;
-        images[index] = img;
-        remaining -= 1;
-        if (remaining === 0) {
-          brickImagesRef.current = images;
-        }
-      };
-      img.addEventListener("load", handleLoad);
-      img.addEventListener("error", handleLoad);
-    });
+
+        paddleImageRef.current = paddleImg;
+        ballImageRef.current = ballImg;
+        brickImagesRef.current = brickImgs;
+        setLoadingState("loaded");
+      } catch (error) {
+        if (!mounted) return;
+        console.error("Failed to load game images:", error);
+        setLoadingState("error");
+        paddleImageRef.current = null;
+        ballImageRef.current = null;
+        brickImagesRef.current = [];
+      }
+    };
+
+    loadAllImages();
 
     return () => {
       mounted = false;
+      paddleImageRef.current = null;
+      ballImageRef.current = null;
       brickImagesRef.current = [];
     };
   }, []);
@@ -72,5 +63,6 @@ export function useGameImages(): GameImages {
     paddle: paddleImageRef,
     ball: ballImageRef,
     bricks: brickImagesRef,
+    loadingState,
   };
 }

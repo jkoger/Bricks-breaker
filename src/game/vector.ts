@@ -14,37 +14,29 @@ export default class Vector {
     return Math.hypot(this.x, this.y);
   }
 
-  add(other: Vector | { x: number; y: number }): Vector {
-    const otherX = other instanceof Vector ? other.x : other.x;
-    const otherY = other instanceof Vector ? other.y : other.y;
-    return new Vector(this.x + otherX, this.y + otherY);
+  add(other: Vector): Vector {
+    return new Vector(this.x + other.x, this.y + other.y);
   }
 
   normalize(): Vector {
     return this.scaleBy(1 / this.length());
   }
 
-  subtract(other: Vector | { x: number; y: number }): Vector {
-    const otherX = other instanceof Vector ? other.x : other.x;
-    const otherY = other instanceof Vector ? other.y : other.y;
-    return new Vector(this.x - otherX, this.y - otherY);
+  subtract(other: Vector): Vector {
+    return new Vector(this.x - other.x, this.y - other.y);
   }
 
-  dotProduct(other: Vector | { x: number; y: number }): number {
-    const otherX = other instanceof Vector ? other.x : other.x;
-    const otherY = other instanceof Vector ? other.y : other.y;
-    return this.x * otherX + this.y * otherY;
+  dotProduct(other: Vector): number {
+    return this.x * other.x + this.y * other.y;
   }
 
-  projectOn(other: Vector | { x: number; y: number }): Vector {
-    const otherX = other instanceof Vector ? other.x : other.x;
-    const otherY = other instanceof Vector ? other.y : other.y;
-    const otherLength = Math.hypot(otherX, otherY);
+  projectOn(other: Vector): Vector {
+    const otherLength = Math.hypot(other.x, other.y);
     const amt = this.dotProduct(other) / otherLength;
-    return new Vector(amt * otherX, amt * otherY);
+    return new Vector(amt * other.x, amt * other.y);
   }
 
-  reflect(normal: Vector | { x: number; y: number }): Vector {
+  reflect(normal: Vector): Vector {
     return this.subtract(this.projectOn(normal).scaleBy(2));
   }
 
@@ -56,13 +48,11 @@ export default class Vector {
     return new Vector(this.x * cos - this.y * sin, this.x * sin + this.y * cos);
   }
 
-  crossProduct(other: Vector | { x: number; y: number }): number {
-    const otherX = other instanceof Vector ? other.x : other.x;
-    const otherY = other instanceof Vector ? other.y : other.y;
-    return this.x * otherY - otherX * this.y;
+  crossProduct(other: Vector): number {
+    return this.x * other.y - other.x * this.y;
   }
 
-  angleBetween(other: Vector | { x: number; y: number }): number {
+  angleBetween(other: Vector): number {
     return toDegrees(
       Math.atan2(this.crossProduct(other), this.dotProduct(other)),
     );

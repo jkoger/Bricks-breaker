@@ -1,11 +1,12 @@
-import { useEffect, useRef } from "react";
-import type { GameState } from "../../game/core";
+import { useEffect, useRef, useState } from "react";
+import type { GameEngine } from "../../game/engine";
 import Vector from "../../game/vector";
 import { useGameImages } from "./hooks/useGameImages";
+import { useBrickPatterns } from "./hooks/useBrickPatterns";
 import { renderGameScene } from "./game-renderer";
 
 interface GameSceneProps {
-  gameRef: React.RefObject<GameState>;
+  engineRef: React.RefObject<GameEngine | null>;
   level: number;
   projectDistance: (distance: number) => number;
   projectVector: (vector: Vector) => Vector;
@@ -14,7 +15,7 @@ interface GameSceneProps {
 }
 
 export default function GameScene({
-  gameRef,
+  engineRef,
   level,
   projectDistance,
   projectVector,
@@ -23,24 +24,52 @@ export default function GameScene({
 }: GameSceneProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const images = useGameImages();
+  const [canvasContext, setCanvasContext] =
+    useState<CanvasRenderingContext2D | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) {
+      setCanvasContext(null);
+      return;
+    }
+
     const ctx = canvas.getContext("2d", { alpha: true });
-    if (!ctx) return;
+    if (!ctx) {
+      setCanvasContext(null);
+      return;
+    }
 
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = "high";
+    setCanvasContext(ctx);
+
+    return () => {
+      setCanvasContext(null);
+    };
+  }, [viewWidth, viewHeight]);
+
+  const brickPatternsRef = useBrickPatterns(
+    images.bricks.current || [],
+    canvasContext,
+  );
+
+  useEffect(() => {
+    if (!canvasContext) return;
 
     let animationFrameId: number;
 
     const draw = () => {
-      const game = gameRef.current;
+      const engine = engineRef.current;
+      if (!engine) {
+        animationFrameId = requestAnimationFrame(draw);
+        return;
+      }
+      const game = engine.getState();
       const unit = projectDistance(game.ball.radius);
 
       renderGameScene({
-        ctx,
+        ctx: canvasContext,
         game,
         level,
         unit,
@@ -51,8 +80,9 @@ export default function GameScene({
         images: {
           paddle: images.paddle.current,
           ball: images.ball.current,
-          bricks: images.bricks.current,
+          bricks: images.bricks.current || [],
         },
+        brickPatterns: brickPatternsRef.current,
       });
 
       animationFrameId = requestAnimationFrame(draw);
@@ -63,13 +93,15 @@ export default function GameScene({
       cancelAnimationFrame(animationFrameId);
     };
   }, [
-    gameRef,
+    engineRef,
     level,
     projectDistance,
     projectVector,
     viewWidth,
     viewHeight,
     images,
+    canvasContext,
+    brickPatternsRef,
   ]);
 
   return (
