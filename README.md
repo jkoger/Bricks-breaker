@@ -1,6 +1,7 @@
 # Bricks Breaker
 
-This project is a classic brick-breaking game built with React and TypeScript. The game features multiple levels, smooth animations, and responsive controls. Players use the paddle to bounce the ball and break all bricks to progress through levels.
+Classic brick-breaking game built with React and TypeScript.
+Players use the paddle to bounce the ball and break all bricks to progress through levels.
 
 ![Demo](./public/demo.gif)
 
@@ -15,7 +16,7 @@ This project is a classic brick-breaking game built with React and TypeScript. T
 - Smooth canvas-based rendering with texture support for game elements.
 - Progressive level completion with level transition screens.
 - Game state persistence using browser localStorage.
-- Modern UI with animated overlays and smooth transitions.
+- UI with animated overlays and smooth transitions.
 
 ## Installation
 
