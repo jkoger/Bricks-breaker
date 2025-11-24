@@ -27,6 +27,9 @@ export default function StartScreen({
       <p className="overlay-text">Use ← → or A D to move the paddle</p>
       <p className="overlay-text">Press SPACE to pause</p>
       <Button onClick={onStart}>START GAME</Button>
+      <p className="overlay-footer">
+        © 2025 J. Adamson — Bricks Breaker demo for portfolio.
+      </p>
     </div>
   );
 }

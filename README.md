@@ -1,16 +1,54 @@
-# React + Vite
+# Bricks Breaker
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This project is a classic brick-breaking game built with React and TypeScript. The game features multiple levels, smooth animations, and responsive controls. Players use the paddle to bounce the ball and break all bricks to progress through levels.
 
-Currently, two official plugins are available:
+![Demo](./public/demo.gif)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+[Live Demo](https://bricks-breaker-fawn.vercel.app/)
 
-## React Compiler
+## Features
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Multiple levels with increasing difficulty and different brick patterns.
+- Responsive controls using arrow keys or A/D keys for paddle movement.
+- Pause functionality with game state persistence.
+- Lives system with visual heart indicators.
+- Smooth canvas-based rendering with texture support for game elements.
+- Progressive level completion with level transition screens.
+- Game state persistence using browser localStorage.
+- Modern UI with animated overlays and smooth transitions.
 
-## Expanding the ESLint configuration
+## Installation
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Project requires Node.js 18+ installed.
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Start the development server:
+
+```bash
+npm run dev
+```
+
+Build a production bundle (optional):
+
+```bash
+npm run build
+```
+
+Preview production build:
+
+```bash
+npm run preview
+```
+
+## Tooling
+
+- **Vite** for development server and bundling.
+- **React 19** for UI components.
+- **TypeScript** for type safety.
+- **ESLint** with the default Vite React config.
+- **Prettier** for code formatting.

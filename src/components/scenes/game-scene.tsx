@@ -56,6 +56,7 @@ export default function GameScene({
 
   useEffect(() => {
     if (!canvasContext) return;
+    if (images.loadingState !== "loaded") return;
 
     let animationFrameId: number;
 
@@ -100,6 +101,7 @@ export default function GameScene({
     viewWidth,
     viewHeight,
     images,
+    images.loadingState,
     canvasContext,
     brickPatternsRef,
   ]);
