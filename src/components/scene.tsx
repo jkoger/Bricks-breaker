@@ -55,7 +55,7 @@ type ActionType = (typeof ACTION)[keyof typeof ACTION];
 
 interface Action {
   type: ActionType;
-  payload?: unknown;
+  payload?: unknown | [number, boolean?];
 }
 
 const createReducer =
@@ -69,10 +69,14 @@ const createReducer =
     switch (action.type) {
       case ACTION.KEY_DOWN: {
         if (!isGameActive(state)) return state;
-        const keyCode = action.payload as number;
+        const payload = action.payload;
+        const keyCode = Array.isArray(payload)
+          ? payload[0]
+          : (payload as number);
+        const isTouch = Array.isArray(payload) ? payload[1] === true : false;
         const movement = getMovementFromKeyCode(keyCode);
         if (movement) {
-          return updateState(state, { movement });
+          return updateState(state, { movement, isTouchMovement: isTouch });
         }
         return state;
       }
@@ -94,10 +98,14 @@ const createReducer =
             return updateState(state, {
               movement: undefined,
               isPaused: true,
+              isTouchMovement: false,
             });
           }
         }
-        return updateState(state, { movement: undefined });
+        return updateState(state, {
+          movement: undefined,
+          isTouchMovement: false,
+        });
       }
 
       case ACTION.TICK: {
@@ -264,9 +272,35 @@ export default function Scene({ containerSize }: SceneProps) {
   const lastTapRef = useRef<{ x: number; y: number; time: number } | null>(
     null,
   );
+  const movementAnimationRef = useRef<number | null>(null);
+
+  const startRapidMovement = useCallback(
+    (
+      direction: "LEFT" | "RIGHT",
+      actionFn: (type: ActionType, payload?: unknown) => void,
+    ) => {
+      if (movementAnimationRef.current !== null) {
+        cancelAnimationFrame(movementAnimationRef.current);
+      }
+
+      const keyCode = direction === "LEFT" ? 37 : 39;
+
+      const animate = () => {
+        if (currentMovementRef.current === direction && isGameActive(state)) {
+          actionFn(ACTION.KEY_DOWN, keyCode);
+          movementAnimationRef.current = requestAnimationFrame(animate);
+        } else {
+          movementAnimationRef.current = null;
+        }
+      };
+
+      movementAnimationRef.current = requestAnimationFrame(animate);
+    },
+    [state],
+  );
 
   const handleTouchStart = useCallback(
-    (event: React.TouchEvent | React.MouseEvent) => {
+    (event: TouchEvent | MouseEvent) => {
       if (!isGameActive(state)) return;
 
       const target = event.target as HTMLElement;
@@ -275,6 +309,9 @@ export default function Scene({ containerSize }: SceneProps) {
       }
 
       if ("touches" in event && event.touches.length > 0) {
+        event.preventDefault();
+        event.stopPropagation();
+
         const touch = event.touches[0];
         const container = touchContainerRef.current;
         if (container) {
@@ -295,7 +332,7 @@ export default function Scene({ containerSize }: SceneProps) {
   );
 
   const handleTouchMove = useCallback(
-    (event: React.TouchEvent | React.MouseEvent) => {
+    (event: TouchEvent | MouseEvent) => {
       if (!isGameActive(state) || !touchStartRef.current) return;
 
       const target = event.target as HTMLElement;
@@ -304,22 +341,26 @@ export default function Scene({ containerSize }: SceneProps) {
       }
 
       if ("touches" in event && event.touches.length > 0) {
+        event.preventDefault();
+        event.stopPropagation();
+
         const touch = event.touches[0];
         const container = touchContainerRef.current;
         if (container) {
           const rect = container.getBoundingClientRect();
           const currentX = touch.clientX - rect.left;
           const deltaX = currentX - touchStartRef.current.containerX;
-          if (Math.abs(deltaX) > 5) {
+
+          if (Math.abs(deltaX) > 2) {
             isDraggingRef.current = true;
           }
-          const containerWidth = rect.width;
-          const touchPercent = currentX / containerWidth;
 
+          const movementThreshold = 5;
           let newMovement: "LEFT" | "RIGHT" | null = null;
-          if (touchPercent < 0.4) {
+
+          if (deltaX < -movementThreshold) {
             newMovement = "LEFT";
-          } else if (touchPercent > 0.6) {
+          } else if (deltaX > movementThreshold) {
             newMovement = "RIGHT";
           }
 
@@ -330,10 +371,17 @@ export default function Scene({ containerSize }: SceneProps) {
               act(ACTION.KEY_UP, 39);
             }
 
+            if (movementAnimationRef.current !== null) {
+              cancelAnimationFrame(movementAnimationRef.current);
+              movementAnimationRef.current = null;
+            }
+
             if (newMovement === "LEFT") {
-              act(ACTION.KEY_DOWN, 37);
+              act(ACTION.KEY_DOWN, [37, true]);
+              startRapidMovement("LEFT", act);
             } else if (newMovement === "RIGHT") {
-              act(ACTION.KEY_DOWN, 39);
+              act(ACTION.KEY_DOWN, [39, true]);
+              startRapidMovement("RIGHT", act);
             }
 
             currentMovementRef.current = newMovement;
@@ -345,7 +393,7 @@ export default function Scene({ containerSize }: SceneProps) {
   );
 
   const handleTouchEnd = useCallback(
-    (event: React.TouchEvent | React.MouseEvent) => {
+    (event: TouchEvent | MouseEvent) => {
       if (!touchStartRef.current) return;
 
       const target = event.target as HTMLElement;
@@ -356,6 +404,9 @@ export default function Scene({ containerSize }: SceneProps) {
       }
 
       if ("changedTouches" in event && event.changedTouches.length > 0) {
+        event.preventDefault();
+        event.stopPropagation();
+
         const touchEnd = event.changedTouches[0];
         const deltaX = Math.abs(touchEnd.clientX - touchStartRef.current.x);
         const deltaY = Math.abs(touchEnd.clientY - touchStartRef.current.y);
@@ -371,6 +422,12 @@ export default function Scene({ containerSize }: SceneProps) {
         } else if (currentMovementRef.current === "RIGHT") {
           act(ACTION.KEY_UP, 39);
         }
+
+        if (movementAnimationRef.current !== null) {
+          cancelAnimationFrame(movementAnimationRef.current);
+          movementAnimationRef.current = null;
+        }
+
         currentMovementRef.current = null;
 
         if (isTap && isGameActive(state)) {
@@ -419,6 +476,57 @@ export default function Scene({ containerSize }: SceneProps) {
     currentGame,
     projectDistance,
   );
+
+  const handleMouseDown = useCallback(() => {
+    act(ACTION.KEY_UP, STOP_KEY);
+  }, [act]);
+
+  useEffect(() => {
+    const container = touchContainerRef.current;
+    if (!container) return;
+
+    const touchOptions = { passive: false, capture: false };
+
+    container.addEventListener(
+      "touchstart",
+      handleTouchStart as EventListener,
+      touchOptions,
+    );
+    container.addEventListener(
+      "touchmove",
+      handleTouchMove as EventListener,
+      touchOptions,
+    );
+    container.addEventListener(
+      "touchend",
+      handleTouchEnd as EventListener,
+      touchOptions,
+    );
+    container.addEventListener(
+      "touchcancel",
+      handleTouchEnd as EventListener,
+      touchOptions,
+    );
+
+    return () => {
+      container.removeEventListener(
+        "touchstart",
+        handleTouchStart as EventListener,
+      );
+      container.removeEventListener(
+        "touchmove",
+        handleTouchMove as EventListener,
+      );
+      container.removeEventListener(
+        "touchend",
+        handleTouchEnd as EventListener,
+      );
+      container.removeEventListener(
+        "touchcancel",
+        handleTouchEnd as EventListener,
+      );
+    };
+  }, [handleTouchStart, handleTouchMove, handleTouchEnd]);
 
   const renderScreen = <T extends Record<string, unknown>>(
     ScreenComponent: React.ComponentType<{ width: number; height: number } & T>,
@@ -470,11 +578,7 @@ export default function Scene({ containerSize }: SceneProps) {
         height: containerHeight,
         touchAction: "none",
       }}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-      onTouchCancel={handleTouchEnd}
-      onMouseDown={handleTouchStart}
+      onMouseDown={handleMouseDown}
     >
       {engineRef.current && (
         <GameScene

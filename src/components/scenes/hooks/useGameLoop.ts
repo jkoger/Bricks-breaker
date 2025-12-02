@@ -23,7 +23,6 @@ interface UseGameLoopOptions {
   onTick: (delta: number) => void;
   onKeyDown: (keyCode: number) => void;
   onKeyUp: (keyCode: number) => void;
-  onTouchMove?: (movement: "LEFT" | "RIGHT" | null) => void;
   isPaused: boolean;
 }
 
@@ -31,12 +30,9 @@ export function useGameLoop({
   onTick,
   onKeyDown,
   onKeyUp,
-  onTouchMove,
   isPaused,
 }: UseGameLoopOptions): void {
   const pausedRef = useRef(isPaused);
-  const touchStartXRef = useRef<number | null>(null);
-  const touchCurrentXRef = useRef<number | null>(null);
 
   useEffect(() => {
     pausedRef.current = isPaused;
@@ -51,43 +47,6 @@ export function useGameLoop({
     const handleKeyUp = (event: KeyboardEvent) => {
       const keyCode = getKeyCode(event);
       onKeyUp(keyCode);
-    };
-
-    const handleTouchStart = (event: TouchEvent) => {
-      if (event.touches.length > 0) {
-        touchStartXRef.current = event.touches[0].clientX;
-        touchCurrentXRef.current = event.touches[0].clientX;
-      }
-    };
-
-    const handleTouchMove = (event: TouchEvent) => {
-      if (event.touches.length > 0 && touchStartXRef.current !== null) {
-        touchCurrentXRef.current = event.touches[0].clientX;
-        const deltaX = touchCurrentXRef.current - touchStartXRef.current;
-        const threshold = 10;
-
-        if (Math.abs(deltaX) > threshold && onTouchMove) {
-          if (deltaX > 0) {
-            onTouchMove("RIGHT");
-          } else {
-            onTouchMove("LEFT");
-          }
-        } else if (onTouchMove) {
-          onTouchMove(null);
-        }
-
-        if (!pausedRef.current) {
-          event.preventDefault();
-        }
-      }
-    };
-
-    const handleTouchEnd = () => {
-      if (onTouchMove) {
-        onTouchMove(null);
-      }
-      touchStartXRef.current = null;
-      touchCurrentXRef.current = null;
     };
 
     let animationFrameId: number | null = null;
@@ -133,12 +92,6 @@ export function useGameLoop({
       handleKeyUp as EventListener,
     );
 
-    const touchOptions = { passive: false };
-    document.addEventListener("touchstart", handleTouchStart, touchOptions);
-    document.addEventListener("touchmove", handleTouchMove, touchOptions);
-    document.addEventListener("touchend", handleTouchEnd, touchOptions);
-    document.addEventListener("touchcancel", handleTouchEnd, touchOptions);
-
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
@@ -147,11 +100,7 @@ export function useGameLoop({
       }
       unregisterKeydown();
       unregisterKeyup();
-      document.removeEventListener("touchstart", handleTouchStart);
-      document.removeEventListener("touchmove", handleTouchMove);
-      document.removeEventListener("touchend", handleTouchEnd);
-      document.removeEventListener("touchcancel", handleTouchEnd);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [onTick, onKeyDown, onKeyUp, onTouchMove]);
+  }, [onTick, onKeyDown, onKeyUp]);
 }

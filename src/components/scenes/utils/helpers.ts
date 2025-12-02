@@ -28,6 +28,7 @@ export interface CoreSceneState {
   isPaused: boolean;
   level: number;
   movement: Movement | undefined;
+  isTouchMovement?: boolean;
 }
 
 export function isGameActive(state: CoreSceneState): boolean {
