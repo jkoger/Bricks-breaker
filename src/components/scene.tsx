@@ -581,14 +581,16 @@ export default function Scene({ containerSize }: SceneProps) {
       onMouseDown={handleMouseDown}
     >
       {engineRef.current && (
-        <GameScene
-          engineRef={engineRef}
-          level={level}
-          projectDistance={projectDistance}
-          projectVector={projectVector}
-          viewWidth={viewWidth}
-          viewHeight={viewHeight}
-        />
+        <>
+          <GameScene
+            engineRef={engineRef}
+            level={level}
+            projectDistance={projectDistance}
+            projectVector={projectVector}
+            viewWidth={viewWidth}
+            viewHeight={viewHeight}
+          />
+        </>
       )}
       {isPaused && (
         <PauseScreen

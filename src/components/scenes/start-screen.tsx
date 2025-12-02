@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import logoImage from "../../assets/images/logo.png";
+import buttonImage from "../../assets/images/button.png";
 import Button from "./button";
 
 interface StartScreenProps {
@@ -14,6 +15,40 @@ export default function StartScreen({
   onStart,
 }: StartScreenProps) {
   const [isMobile, setIsMobile] = useState(false);
+  const [imagesLoaded, setImagesLoaded] = useState(false);
+
+  useEffect(() => {
+    let logoLoaded = false;
+    let buttonLoaded = false;
+
+    const checkAllLoaded = () => {
+      if (logoLoaded && buttonLoaded) {
+        setImagesLoaded(true);
+      }
+    };
+
+    const logoImg = new Image();
+    logoImg.onload = () => {
+      logoLoaded = true;
+      checkAllLoaded();
+    };
+    logoImg.onerror = () => {
+      logoLoaded = true;
+      checkAllLoaded();
+    };
+    logoImg.src = logoImage;
+
+    const buttonImg = new Image();
+    buttonImg.onload = () => {
+      buttonLoaded = true;
+      checkAllLoaded();
+    };
+    buttonImg.onerror = () => {
+      buttonLoaded = true;
+      checkAllLoaded();
+    };
+    buttonImg.src = buttonImage;
+  }, []);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -27,6 +62,21 @@ export default function StartScreen({
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
+
+  if (!imagesLoaded) {
+    return (
+      <div
+        className="overlay-screen"
+        style={
+          {
+            width,
+            height,
+            "--container-width": `${width}px`,
+          } as React.CSSProperties
+        }
+      />
+    );
+  }
 
   return (
     <div

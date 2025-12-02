@@ -28,6 +28,8 @@ export default function GameScene({
     useState<CanvasRenderingContext2D | null>(null);
 
   useEffect(() => {
+    if (images.loadingState !== "loaded") return;
+
     const canvas = canvasRef.current;
     if (!canvas) {
       setCanvasContext(null);
@@ -47,7 +49,7 @@ export default function GameScene({
     return () => {
       setCanvasContext(null);
     };
-  }, [viewWidth, viewHeight]);
+  }, [viewWidth, viewHeight, images.loadingState]);
 
   const brickPatternsRef = useBrickPatterns(
     images.bricks.current || [],
@@ -105,6 +107,10 @@ export default function GameScene({
     canvasContext,
     brickPatternsRef,
   ]);
+
+  if (images.loadingState !== "loaded") {
+    return null;
+  }
 
   return (
     <canvas

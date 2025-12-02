@@ -2,17 +2,15 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
 
-    img.addEventListener("load", () => {
-      resolve(img);
-    });
-
-    img.addEventListener("error", (error) => {
+    if ("fetchPriority" in img) {
+      (img as any).fetchPriority = "high";
+    }
+    img.onload = () => resolve(img);
+    img.onerror = (error) => {
       reject(
-        new Error(
-          `Failed to load image: ${src}. ${error.message || "Unknown error"}`,
-        ),
+        new Error(`Failed to load image: ${src}. ${error || "Unknown error"}`),
       );
-    });
+    };
 
     img.src = src;
   });

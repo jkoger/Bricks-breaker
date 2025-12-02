@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import Button from "./button";
+import buttonImage from "../../assets/images/button.png";
 
 interface PauseScreenProps {
   width: number;
@@ -13,6 +14,14 @@ export default function PauseScreen({
   onResume,
 }: PauseScreenProps) {
   const [isMobile, setIsMobile] = useState(false);
+  const [buttonLoaded, setButtonLoaded] = useState(false);
+
+  useEffect(() => {
+    const img = new Image();
+    img.onload = () => setButtonLoaded(true);
+    img.onerror = () => setButtonLoaded(true);
+    img.src = buttonImage;
+  }, []);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -26,6 +35,21 @@ export default function PauseScreen({
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
+
+  if (!buttonLoaded) {
+    return (
+      <div
+        className="overlay-screen pause-overlay"
+        style={
+          {
+            width,
+            height,
+            "--container-width": `${width}px`,
+          } as React.CSSProperties
+        }
+      />
+    );
+  }
 
   return (
     <div

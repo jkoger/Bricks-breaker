@@ -27,17 +27,30 @@ export function useGameImages(): GameImages {
       try {
         setLoadingState("loading");
 
-        const [paddleImg, ballImg, brickImgs] = await Promise.all([
+        const imagePromises = [
           preloadImage(paddleImageSrc),
           preloadImage(ballImageSrc),
           preloadImages([brick1ImageSrc, brick2ImageSrc]),
-        ]);
+        ];
+        const results = await Promise.allSettled(imagePromises);
 
         if (!mounted) return;
 
-        paddleImageRef.current = paddleImg;
-        ballImageRef.current = ballImg;
-        brickImagesRef.current = brickImgs;
+        if (results[0].status === "fulfilled") {
+          paddleImageRef.current = results[0].value as ImageBitmap;
+        }
+        if (results[1].status === "fulfilled") {
+          ballImageRef.current = results[1].value as ImageBitmap;
+        }
+        if (results[2].status === "fulfilled") {
+          brickImagesRef.current = results[2].value as ImageBitmap[];
+        }
+
+        const hasErrors = results.some((r) => r.status === "rejected");
+        if (hasErrors) {
+          console.warn("Some images failed to load, but continuing anyway");
+        }
+
         setLoadingState("loaded");
       } catch (error) {
         if (!mounted) return;

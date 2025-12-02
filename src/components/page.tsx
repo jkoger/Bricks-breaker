@@ -12,6 +12,13 @@ interface Size {
 export default function Page() {
   const sceneContainer = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<Size | undefined>(undefined);
+  const [bgLoaded, setBgLoaded] = useState(false);
+
+  useEffect(() => {
+    const img = new Image();
+    img.onload = () => setBgLoaded(true);
+    img.src = bgImage;
+  }, []);
 
   useEffect(() => {
     const onResize = () => {
@@ -27,7 +34,13 @@ export default function Page() {
   }, []);
 
   return (
-    <div className="page" style={{ backgroundImage: `url(${bgImage})` }}>
+    <div
+      className="page"
+      style={{
+        backgroundImage: bgLoaded ? `url(${bgImage})` : undefined,
+        backgroundColor: bgLoaded ? undefined : "#000000",
+      }}
+    >
       <div className="scene-container" ref={sceneContainer}>
         {size && <Scene containerSize={size} />}
       </div>
