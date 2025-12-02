@@ -1,4 +1,4 @@
-import buttonImage from "../../assets/images/button.png";
+import buttonImage from "../../assets/images/button.webp";
 
 interface ButtonProps {
   onClick: () => void;

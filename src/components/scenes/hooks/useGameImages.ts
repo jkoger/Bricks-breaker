@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import paddleImageSrc from "../../../assets/images/paddle.png";
-import ballImageSrc from "../../../assets/images/ball.png";
-import brick1ImageSrc from "../../../assets/images/brick.png";
-import brick2ImageSrc from "../../../assets/images/brick1.png";
+import paddleImageSrc from "../../../assets/images/paddle.webp";
+import ballImageSrc from "../../../assets/images/ball.webp";
+import brick1ImageSrc from "../../../assets/images/brick.webp";
+import brick2ImageSrc from "../../../assets/images/brick1.webp";
 import { preloadImages, preloadImage } from "../utils/preloadResources";
 
 type LoadingState = "loading" | "loaded" | "error";

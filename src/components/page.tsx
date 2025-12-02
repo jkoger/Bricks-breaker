@@ -2,7 +2,7 @@ import { useRef, useEffect, useState } from "react";
 
 import Scene from "./scene";
 import { registerListener } from "../utils";
-import bgImage from "../assets/images/bg.png";
+import bgImage from "../assets/images/bg.webp";
 
 interface Size {
   width: number;

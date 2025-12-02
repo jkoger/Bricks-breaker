@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import logoImage from "../../assets/images/logo.png";
-import buttonImage from "../../assets/images/button.png";
+import logoImage from "../../assets/images/logo.webp";
+import buttonImage from "../../assets/images/button.webp";
 import Button from "./button";
 
 interface StartScreenProps {

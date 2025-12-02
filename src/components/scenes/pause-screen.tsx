@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import Button from "./button";
-import buttonImage from "../../assets/images/button.png";
+import buttonImage from "../../assets/images/button.webp";
 
 interface PauseScreenProps {
   width: number;
