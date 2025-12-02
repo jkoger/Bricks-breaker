@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import Button from "./button";
 
 interface PauseScreenProps {
@@ -11,6 +12,21 @@ export default function PauseScreen({
   height,
   onResume,
 }: PauseScreenProps) {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+          navigator.userAgent,
+        ) || window.innerWidth < 768,
+      );
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
   return (
     <div
       className="overlay-screen pause-overlay"
@@ -23,7 +39,11 @@ export default function PauseScreen({
       }
     >
       <h1 className="overlay-title">PAUSED</h1>
-      <p className="overlay-text">Press SPACE to resume</p>
+      <p className="overlay-text">
+        {isMobile
+          ? "Tap RESUME or double tap the screen to resume"
+          : "Press SPACE to resume"}
+      </p>
       <Button onClick={onResume}>RESUME</Button>
     </div>
   );

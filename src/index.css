@@ -16,6 +16,10 @@ body {
     "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+  touch-action: none;
 }
 
 #root {
@@ -34,6 +38,15 @@ code {
   background-position: center;
   background-repeat: no-repeat;
   padding: 60px;
+  overflow: hidden;
+  touch-action: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 768px) {
+  .page {
+    padding: 10px;
+  }
 }
 
 .scene-container {
@@ -42,6 +55,8 @@ code {
   display: flex;
   align-items: center;
   justify-content: center;
+  touch-action: none;
+  overflow: hidden;
 }
 
 .scene {
@@ -55,6 +70,11 @@ code {
   box-shadow:
     inset 0 0 20px rgba(186, 52, 52, 0.15),
     inset 0 0 40px rgba(186, 52, 52, 0.08);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 
 @keyframes screenFadeIn {
@@ -200,4 +220,84 @@ code {
   pointer-events: none;
   white-space: nowrap;
   letter-spacing: 0.05em;
+}
+
+/* Mobile Controls */
+.mobile-controls {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+.mobile-control-button {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 140, 0, 0.6);
+  background: rgba(0, 0, 0, 0.7);
+  color: rgb(229, 219, 199);
+  font-size: 28px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background 0.2s,
+    transform 0.1s,
+    border-color 0.2s;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.5),
+    inset 0 1px 2px rgba(255, 255, 255, 0.1);
+}
+
+.mobile-control-button:active {
+  background: rgba(255, 140, 0, 0.3);
+  transform: scale(0.95);
+  border-color: rgba(255, 140, 0, 0.9);
+}
+
+.mobile-control-button:hover {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+@media (max-width: 480px) {
+  .mobile-control-button {
+    width: 50px;
+    height: 50px;
+    font-size: 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .overlay-screen {
+    padding: 1em;
+    max-width: 95%;
+  }
+
+  .overlay-text {
+    font-size: calc(var(--text-size-multiplier, 1.25) * 0.9em);
+  }
+
+  .logo {
+    max-width: 90%;
+    width: 90%;
+  }
+}
+
+@media (max-width: 480px) {
+  .overlay-screen {
+    padding: 0.75em;
+  }
+
+  .overlay-title {
+    font-size: calc(var(--title-size-multiplier, 4) * 0.85em);
+  }
+
+  .overlay-text {
+    font-size: calc(var(--text-size-multiplier, 1.25) * 0.8em);
+  }
 }

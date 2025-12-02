@@ -162,15 +162,21 @@ export function restoreGameStateFromSnapshot(snapshot: GameSnapshot): {
   level: number;
   game: GameState;
 } {
+  if (!snapshot || typeof snapshot.level !== "number") {
+    throw new Error("Invalid snapshot: missing or invalid level");
+  }
+
   const levelData = LEVELS[snapshot.level];
   if (!levelData) {
     throw new Error(`Invalid level: ${snapshot.level}`);
   }
 
+  const blocks = Array.isArray(snapshot.blocks) ? snapshot.blocks : [];
+
   const baseGame = getGameStateFromLevel(
     levelData,
-    snapshot.lives,
-    snapshot.seed,
+    snapshot.lives ?? 5,
+    snapshot.seed ?? Date.now(),
   );
 
   const blockGrid = baseGame.blockGrid;
@@ -182,12 +188,19 @@ export function restoreGameStateFromSnapshot(snapshot: GameSnapshot): {
     2;
 
   const snapshotPositions = new Set<string>();
-  snapshot.blocks.forEach((snapshotBlock) => {
-    const col = Math.floor(snapshotBlock.position.x);
-    const row = Math.floor(
-      (snapshotBlock.position.y - blocksStart) / BLOCK_HEIGHT,
-    );
-    snapshotPositions.add(`${row},${col}`);
+  blocks.forEach((snapshotBlock) => {
+    if (
+      snapshotBlock &&
+      snapshotBlock.position &&
+      typeof snapshotBlock.position.x === "number" &&
+      typeof snapshotBlock.position.y === "number"
+    ) {
+      const col = Math.floor(snapshotBlock.position.x);
+      const row = Math.floor(
+        (snapshotBlock.position.y - blocksStart) / BLOCK_HEIGHT,
+      );
+      snapshotPositions.add(`${row},${col}`);
+    }
   });
 
   const baseGamePositions = new Set<string>();
@@ -207,18 +220,25 @@ export function restoreGameStateFromSnapshot(snapshot: GameSnapshot): {
     }
   }
 
-  snapshot.blocks.forEach((snapshotBlock) => {
-    const block: Block = {
-      density: snapshotBlock.density,
-      position: deserializeVector(snapshotBlock.position),
-      width: 1,
-      height: BLOCK_HEIGHT,
-      textureIndex: snapshotBlock.textureIndex,
-    };
+  blocks.forEach((snapshotBlock) => {
+    if (
+      snapshotBlock &&
+      snapshotBlock.position &&
+      typeof snapshotBlock.position.x === "number" &&
+      typeof snapshotBlock.position.y === "number"
+    ) {
+      const block: Block = {
+        density: snapshotBlock.density ?? 1,
+        position: deserializeVector(snapshotBlock.position),
+        width: 1,
+        height: BLOCK_HEIGHT,
+        textureIndex: snapshotBlock.textureIndex ?? 0,
+      };
 
-    const col = Math.floor(block.position.x);
-    const row = Math.floor((block.position.y - blocksStart) / BLOCK_HEIGHT);
-    blockGrid.setBlock(row, col, block);
+      const col = Math.floor(block.position.x);
+      const row = Math.floor((block.position.y - blocksStart) / BLOCK_HEIGHT);
+      blockGrid.setBlock(row, col, block);
+    }
   });
 
   const restoredBallCenter =
@@ -244,12 +264,17 @@ export function restoreGameStateFromSnapshot(snapshot: GameSnapshot): {
     level: snapshot.level,
     game: {
       ...baseGame,
-      lives: snapshot.lives,
-      seed: snapshot.seed,
+      lives: snapshot.lives ?? baseGame.lives,
+      seed: snapshot.seed ?? baseGame.seed,
       blockGrid,
       paddle: {
         ...baseGame.paddle,
-        position: deserializeVector(snapshot.paddle.position),
+        position:
+          snapshot.paddle?.position &&
+          typeof snapshot.paddle.position.x === "number" &&
+          typeof snapshot.paddle.position.y === "number"
+            ? deserializeVector(snapshot.paddle.position)
+            : baseGame.paddle.position,
       },
       ball: {
         ...baseGame.ball,
@@ -301,9 +326,15 @@ export function loadGameState(): { level: number; game: GameState } | null {
 
   try {
     const data = JSON.parse(saved);
+    if (!data || typeof data.level !== "number") {
+      console.warn("Invalid game state data, clearing corrupted save");
+      clearGameState();
+      return null;
+    }
     return restoreGameStateFromSnapshot(data as GameSnapshot);
   } catch (error) {
     console.warn("Failed to load game state:", error);
+    safeRemoveItem(STORAGE_KEYS.GAME_STATE);
     return null;
   }
 }

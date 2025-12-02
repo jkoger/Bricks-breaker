@@ -7,7 +7,7 @@ import React, {
   useRef,
 } from "react";
 import { LEVELS } from "../game/levels";
-import { STOP_KEY, type GameState } from "../game/core";
+import { STOP_KEY, type GameState, type Movement } from "../game/core";
 import { GameEngine } from "../game/engine";
 import { saveGameState } from "../game/storage";
 import {
@@ -252,6 +252,162 @@ export default function Scene({ containerSize }: SceneProps) {
     [act],
   );
 
+  const touchStartRef = useRef<{
+    x: number;
+    y: number;
+    time: number;
+    containerX: number;
+  } | null>(null);
+  const touchContainerRef = useRef<HTMLDivElement | null>(null);
+  const isDraggingRef = useRef(false);
+  const currentMovementRef = useRef<"LEFT" | "RIGHT" | null>(null);
+  const lastTapRef = useRef<{ x: number; y: number; time: number } | null>(
+    null,
+  );
+
+  const handleTouchStart = useCallback(
+    (event: React.TouchEvent | React.MouseEvent) => {
+      if (!isGameActive(state)) return;
+
+      const target = event.target as HTMLElement;
+      if (target.closest(".button-container")) {
+        return;
+      }
+
+      if ("touches" in event && event.touches.length > 0) {
+        const touch = event.touches[0];
+        const container = touchContainerRef.current;
+        if (container) {
+          const rect = container.getBoundingClientRect();
+          touchStartRef.current = {
+            x: touch.clientX,
+            y: touch.clientY,
+            time: Date.now(),
+            containerX: touch.clientX - rect.left,
+          };
+          isDraggingRef.current = false;
+        }
+      } else if (event.type === "mousedown") {
+        act(ACTION.KEY_UP, STOP_KEY);
+      }
+    },
+    [act, state],
+  );
+
+  const handleTouchMove = useCallback(
+    (event: React.TouchEvent | React.MouseEvent) => {
+      if (!isGameActive(state) || !touchStartRef.current) return;
+
+      const target = event.target as HTMLElement;
+      if (target.closest(".button-container")) {
+        return;
+      }
+
+      if ("touches" in event && event.touches.length > 0) {
+        const touch = event.touches[0];
+        const container = touchContainerRef.current;
+        if (container) {
+          const rect = container.getBoundingClientRect();
+          const currentX = touch.clientX - rect.left;
+          const deltaX = currentX - touchStartRef.current.containerX;
+          if (Math.abs(deltaX) > 5) {
+            isDraggingRef.current = true;
+          }
+          const containerWidth = rect.width;
+          const touchPercent = currentX / containerWidth;
+
+          let newMovement: "LEFT" | "RIGHT" | null = null;
+          if (touchPercent < 0.4) {
+            newMovement = "LEFT";
+          } else if (touchPercent > 0.6) {
+            newMovement = "RIGHT";
+          }
+
+          if (newMovement !== currentMovementRef.current) {
+            if (currentMovementRef.current === "LEFT") {
+              act(ACTION.KEY_UP, 37);
+            } else if (currentMovementRef.current === "RIGHT") {
+              act(ACTION.KEY_UP, 39);
+            }
+
+            if (newMovement === "LEFT") {
+              act(ACTION.KEY_DOWN, 37);
+            } else if (newMovement === "RIGHT") {
+              act(ACTION.KEY_DOWN, 39);
+            }
+
+            currentMovementRef.current = newMovement;
+          }
+        }
+      }
+    },
+    [act, state],
+  );
+
+  const handleTouchEnd = useCallback(
+    (event: React.TouchEvent | React.MouseEvent) => {
+      if (!touchStartRef.current) return;
+
+      const target = event.target as HTMLElement;
+      if (target.closest(".button-container")) {
+        touchStartRef.current = null;
+        isDraggingRef.current = false;
+        return;
+      }
+
+      if ("changedTouches" in event && event.changedTouches.length > 0) {
+        const touchEnd = event.changedTouches[0];
+        const deltaX = Math.abs(touchEnd.clientX - touchStartRef.current.x);
+        const deltaY = Math.abs(touchEnd.clientY - touchStartRef.current.y);
+        const deltaTime = Date.now() - touchStartRef.current.time;
+        const isTap =
+          !isDraggingRef.current &&
+          deltaX < 20 &&
+          deltaY < 20 &&
+          deltaTime < 300;
+
+        if (currentMovementRef.current === "LEFT") {
+          act(ACTION.KEY_UP, 37);
+        } else if (currentMovementRef.current === "RIGHT") {
+          act(ACTION.KEY_UP, 39);
+        }
+        currentMovementRef.current = null;
+
+        if (isTap && isGameActive(state)) {
+          const now = Date.now();
+          const currentTap = {
+            x: touchEnd.clientX,
+            y: touchEnd.clientY,
+            time: now,
+          };
+
+          if (lastTapRef.current) {
+            const timeSinceLastTap = now - lastTapRef.current.time;
+            const distanceX = Math.abs(currentTap.x - lastTapRef.current.x);
+            const distanceY = Math.abs(currentTap.y - lastTapRef.current.y);
+            const isDoubleTap =
+              timeSinceLastTap < 400 && distanceX < 50 && distanceY < 50;
+
+            if (isDoubleTap) {
+              act(ACTION.KEY_UP, STOP_KEY);
+              lastTapRef.current = null;
+            } else {
+              lastTapRef.current = currentTap;
+            }
+          } else {
+            lastTapRef.current = currentTap;
+          }
+        } else {
+          lastTapRef.current = null;
+        }
+
+        touchStartRef.current = null;
+        isDraggingRef.current = false;
+      }
+    },
+    [act, state],
+  );
+
   useGameLoop({
     onTick: handleTick,
     onKeyDown: handleKeyDown,
@@ -307,11 +463,18 @@ export default function Scene({ containerSize }: SceneProps) {
 
   return (
     <div
+      ref={touchContainerRef}
       style={{
         position: "relative",
         width: containerWidth,
         height: containerHeight,
+        touchAction: "none",
       }}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchEnd}
+      onMouseDown={handleTouchStart}
     >
       {engineRef.current && (
         <GameScene
