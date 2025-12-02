@@ -7,7 +7,7 @@ import React, {
   useRef,
 } from "react";
 import { LEVELS } from "../game/levels";
-import { STOP_KEY, type GameState, type Movement } from "../game/core";
+import { STOP_KEY, type GameState } from "../game/core";
 import { GameEngine } from "../game/engine";
 import { saveGameState } from "../game/storage";
 import {
