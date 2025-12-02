@@ -129,30 +129,6 @@ function drawLives(
   }
 }
 
-type ShadowLayer = {
-  color: string;
-  blur: number;
-  repeat?: number;
-  offsetY?: number;
-};
-
-function drawTextWithShadowLayers(
-  ctx: CanvasRenderingContext2D,
-  text: string,
-  x: number,
-  y: number,
-  layers: ShadowLayer[],
-) {
-  layers.forEach(({ color, blur, repeat = 1, offsetY = 0 }) => {
-    setShadow(ctx, color, blur, 0, offsetY);
-    for (let i = 0; i < repeat; i += 1) {
-      ctx.fillText(text, x, y);
-    }
-  });
-
-  clearShadow(ctx);
-}
-
 function drawLevelText(
   ctx: CanvasRenderingContext2D,
   level: number,
@@ -165,46 +141,23 @@ function drawLevelText(
   const levelY = unit * 2;
 
   withSave(ctx, () => {
-    ctx.font = `bold ${levelFontSize}px "Press Start 2P", sans-serif`;
+    ctx.font = `bold ${levelFontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif`;
     ctx.textAlign = "right";
     ctx.textBaseline = "middle";
 
-    const textGradient = ctx.createLinearGradient(
-      levelX,
-      levelY - levelFontSize * 0.7,
-      levelX,
-      levelY + levelFontSize * 0.7,
+    ctx.fillStyle = "#e2ae6a";
+    setShadow(
+      ctx,
+      "rgba(0, 0, 0, 0.55)",
+      levelFontSize * 0.2,
+      0,
+      levelFontSize * 0.08,
     );
-    textGradient.addColorStop(0, "rgba(255, 220, 170, 1)");
-    textGradient.addColorStop(0.3, "#e2ae6a");
-    textGradient.addColorStop(0.7, "rgba(180, 130, 80, 1)");
-    textGradient.addColorStop(1, "rgba(160, 110, 60, 1)");
-    ctx.fillStyle = textGradient;
-
-    drawTextWithShadowLayers(ctx, levelText, levelX, levelY, [
-      { color: "rgba(255, 140, 0, 0.15)", blur: levelFontSize * 2, repeat: 2 },
-      { color: "rgba(255, 165, 0, 0.2)", blur: levelFontSize * 1.4, repeat: 2 },
-      { color: "rgba(255, 140, 0, 0.25)", blur: levelFontSize * 0.8 },
-    ]);
-
-    drawTextWithShadowLayers(ctx, levelText, levelX, levelY, [
-      { color: "rgba(0, 0, 0, 0.9)", blur: levelFontSize * 0.2 },
-      {
-        color: "rgba(0, 0, 0, 0.7)",
-        blur: levelFontSize * 0.15,
-        offsetY: levelFontSize * 0.075,
-      },
-      {
-        color: "rgba(0, 0, 0, 0.8)",
-        blur: levelFontSize * 0.08,
-        offsetY: levelFontSize * 0.025,
-      },
-    ]);
-
     ctx.strokeStyle = BROWN_OUTLINE;
     ctx.lineWidth = 0.5;
     ctx.strokeText(levelText, levelX, levelY);
     ctx.fillText(levelText, levelX, levelY);
+    clearShadow(ctx);
 
     withSave(ctx, () => {
       const highlightGradient = ctx.createLinearGradient(

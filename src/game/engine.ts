@@ -3,6 +3,7 @@ import { getGameStateFromLevel, getNewGameState } from "./core";
 import { LEVELS } from "./levels";
 import type { GameSnapshot } from "./storage";
 import { extractGameSnapshot, restoreGameStateFromSnapshot } from "./storage";
+import Vector from "./vector";
 
 export class GameEngine {
   private state: GameState;
@@ -17,6 +18,26 @@ export class GameEngine {
 
   step(delta: number, movement: Movement | undefined): GameState {
     this.state = getNewGameState(this.state, movement, delta);
+    return this.state;
+  }
+
+  setPaddleCenterX(centerX: number): GameState {
+    const { paddle, size } = this.state;
+    const halfWidth = paddle.width / 2;
+    const clampedCenter = Math.min(
+      Math.max(centerX, halfWidth),
+      size.width - halfWidth,
+    );
+    const newX = clampedCenter - halfWidth;
+
+    this.state = {
+      ...this.state,
+      paddle: {
+        ...paddle,
+        position: new Vector(newX, paddle.position.y),
+      },
+    };
+
     return this.state;
   }
 

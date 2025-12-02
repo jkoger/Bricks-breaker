@@ -355,6 +355,27 @@ export default function Scene({ containerSize }: SceneProps) {
             isDraggingRef.current = true;
           }
 
+          const game = engineRef.current?.getState();
+          const unitOnScreen = projectDistance(1);
+          if (game && unitOnScreen > 0) {
+            const targetCenterX = currentX / unitOnScreen;
+            engineRef.current?.setPaddleCenterX(targetCenterX);
+
+            if (currentMovementRef.current === "LEFT") {
+              act(ACTION.KEY_UP, 37);
+            } else if (currentMovementRef.current === "RIGHT") {
+              act(ACTION.KEY_UP, 39);
+            }
+
+            if (movementAnimationRef.current !== null) {
+              cancelAnimationFrame(movementAnimationRef.current);
+              movementAnimationRef.current = null;
+            }
+
+            currentMovementRef.current = null;
+            return;
+          }
+
           const movementThreshold = 5;
           let newMovement: "LEFT" | "RIGHT" | null = null;
 
@@ -389,7 +410,7 @@ export default function Scene({ containerSize }: SceneProps) {
         }
       }
     },
-    [act, state],
+    [act, projectDistance, state],
   );
 
   const handleTouchEnd = useCallback(
